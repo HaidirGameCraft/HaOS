@@ -6,4 +6,4 @@ Hi, Welcome to my basic OS. This is my second project that I admit into github. 
 This project inspire me from ***Nanobyte OS and The Little Book OS***. From the base, I use [OSDev](https://wiki.osdev.org/) to learning about it.
 
 ## Conclusion
-I hope this project can make me more creative and improve my knowledge as students.
+I hope this project can make me more creative and improve my knowledge as students. Thank you
