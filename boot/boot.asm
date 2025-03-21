@@ -44,7 +44,7 @@ _start:
 	mov dl, [fat_header.drive_number]
 	call read_disk
 
-	jmp 0x07e0:0x0000
+	jmp 0x00:0x7e00
 
 	hlt
 	jmp $

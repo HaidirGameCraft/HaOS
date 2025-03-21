@@ -23,7 +23,7 @@ print_hex:
 	mov si, word_hex
 	xor ax, ax
 
-	mov al, byte [di]
+	mov al, byte [edi]
 	shr al, 4
 	and al, 0x0F
 	add si, ax
@@ -34,7 +34,7 @@ print_hex:
 
 	xor ax, ax
 	mov si, word_hex
-	mov al, byte [di]
+	mov al, byte [edi]
 
 	and al, 0x0F
 	add si, ax
@@ -43,7 +43,7 @@ print_hex:
 	mov ah, 0x0E
 	int 0x10
 
-	inc di
+	inc edi
 	mov al, ' '
 	mov ah, 0x0E
 	int 0x10
