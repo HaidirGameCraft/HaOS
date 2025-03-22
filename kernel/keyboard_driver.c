@@ -5,6 +5,9 @@
 #include <driver/keyboard_driver.h>
 #include <driver/vga_driver.h>
 
+#define __SYSCALL__FUNCTION__
+#include <syscall.h>
+
 char keys[256];
 uint8_t key_status;
 char* key_char = "\0\0271234567890-=\x08\x09QWERTYUIOP[]\n\0ASDFGHJKL;'`\0\\ZXCVBNM,./\0*\0 \0";
@@ -66,4 +69,12 @@ void Keyboard_PopEvent(keyboard_event_callback callback) {
         key_event_callback_array[i] = 0;
         break;
     }
+}
+
+WORD    sys_getkeypress() {
+    return port_inb(0x60);
+}
+
+WORD    sys_getkeystatus() {
+    return port_inb(0x64);
 }

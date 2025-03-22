@@ -1,5 +1,8 @@
 #include <page.h>
 
+#define __SYSCALL__FUNCTION__
+#include <syscall.h>
+
 extern void _kernel_start();
 extern void _kernel_end();
 
@@ -96,4 +99,8 @@ void Page_ResetMapping(addr_t virtual_address, size_t size) {
         // page_t* entry = &ptable.entries[pd_index];
         // entry->entries[pt_index] = (pd_index + pt_index * 1024) * PAGE_SIZE | ATTR_PAGE_PRESENT | ATTR_PAGE_RW;
     }
+}
+
+VOID   sys_mmap(DWORD __virtual_address, DWORD __size, BYTE __flags) {
+    Page_SetMapping(__virtual_address, __flags, __size);
 }

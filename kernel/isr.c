@@ -5,7 +5,6 @@
 #include <stdio.h>
 #include <syscall.h>
 
-
 __attribute__((aligned(0x10)))
 IDTEntry_t idt_entries[256];
 IDTStruct_t idt_ptr;
@@ -141,10 +140,17 @@ void idt_setEntry(int index, uint16_t kernel_cs, uint8_t attribute, addr_t isr) 
 void isr_handler(register_t reg) {
     if( reg.int_number < 0x20 )
     {
-        printf("Exception Message: ");
-        printf(MSG_INT[reg.int_number]);
+        printf("Exception Message: %s\n", MSG_INT[reg.int_number]);
+        printf("EAX = %x\n", reg.eax);
+        printf("ECX = %x\n", reg.ecx);
+        printf("EDX = %x\n", reg.edx);
+        printf("EBX = %x\n", reg.ebx);
+        printf("ESP = %x\n", reg.esp);
+        printf("EBP = %x\n", reg.ebp);
+        printf("ESI = %x\n", reg.esi);
+        printf("EDI = %x\n", reg.edi);
+        printf("Error Code = %x\n", reg.error_code);
         HALT();
-        printf("\n");
     }
 }
 

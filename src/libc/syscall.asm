@@ -1,3 +1,5 @@
+%define syscall int 0x80
+
 section .text
 global read
 read:
@@ -63,6 +65,61 @@ global video_getheightscreen
 video_getheightscreen:
     mov eax, 8
     int 0x80
+    ret
+
+global mmap
+mmap:
+    mov eax, 13
+    mov edi, [esp + 4]
+    mov ecx, [esp + 8]
+    mov ebx, [esp + 12]
+    int 0x80
+    ret
+
+global _malloc
+_malloc:
+    mov eax, 14
+    mov ecx, [esp + 4]
+    int 0x80
+    ret
+
+global _free
+_free:
+    mov eax, 14
+    mov ecx, [esp + 4]
+    int 0x80
+    ret
+
+global font_getcharbitmap
+font_getcharbitmap:
+    mov eax, 11
+    mov ebx, dword [esp + 4]
+    syscall
+    ret
+
+global getkeypress
+getkeypress:
+    mov eax, 16
+    syscall
+    ret
+
+global getkeystatus
+getkeystatus:
+    mov eax, 17
+    syscall
+    ret
+
+global video_copypixel
+video_copypixel:
+    mov eax, 18
+    mov ebx, dword [esp + 4]
+    mov ecx, dword [esp + 8]
+    syscall
+    ret
+global video_getframebuffer
+video_getframebuffer:
+    mov eax, 19
+    syscall
     ret
 
 global HALT

@@ -65,6 +65,36 @@ video_getheightscreen:
     int 0x80
     ret
 
+global font_getcharbitmap
+font_getcharbitmap:
+    mov eax, 11
+    mov ebx, dword [esp + 4]
+    syscall
+    ret
+
+global mmap
+mmap:
+    mov eax, 13
+    mov edi, [esp + 4]
+    mov ecx, [esp + 8]
+    mov ebx, [esp + 12]
+    int 0x80
+    ret
+
+global _malloc
+_malloc:
+    mov eax, 14
+    mov ecx, [esp + 4]
+    int 0x80
+    ret
+
+global _free
+_free:
+    mov eax, 14
+    mov ecx, [esp + 4]
+    int 0x80
+    ret
+
 global HALT
 HALT:
     cli

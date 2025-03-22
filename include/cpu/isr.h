@@ -17,7 +17,7 @@ typedef struct {
 } __attribute__((packed)) IDTStruct_t;
 
 typedef struct {
-    uint32_t eax, ecx, edx, ebx, esp, sbp, esi, edi;
+    uint32_t eax, ecx, edx, ebx, esp, ebp, esi, edi;
     uint8_t int_number;
     uint8_t error_code;
 } __attribute__((packed)) register_t;

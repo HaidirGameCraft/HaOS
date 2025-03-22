@@ -1,4 +1,6 @@
 #include <driver/video_driver.h>
+#include <syscall.h>
+
 #include <font.h>
 #include <string.h>
 
@@ -39,6 +41,12 @@ void VDriver_Init(uint16_t width, uint16_t height, uint8_t bpp, uint32_t addr) {
 }
 
 void VDrider_ClearScreen(COLOR color) {
+    width_screen = video_getwidthscreen();
+    height_screen = video_getheightscreen();
+    max_width_char = width_screen / 8;
+    max_height_char = height_screen / 16;
+    bytes_per_pixel = 3;
+
     video_lines = 0;
     video_rows = 0;
 
@@ -46,10 +54,7 @@ void VDrider_ClearScreen(COLOR color) {
     {
         for(int j = 0; j < width_screen; j++)
         {
-            uint32_t index = (j + i * width_screen) * bytes_per_pixel;
-            ((uint8_t*) framebuffer)[index] = color & 0xFF;
-            ((uint8_t*) framebuffer)[index + 1] = color >> 8 & 0xFF;
-            ((uint8_t*) framebuffer)[index + 2] = color >> 16 & 0xFF;
+            video_putpixel(j, i, color);
         }
     }
 }
@@ -57,7 +62,7 @@ void VDrider_ClearScreen(COLOR color) {
 uint32_t color = 0x00FFFFFF;
 void VDriver_DrawChar(char __c, int x, int y)
 {
-    uint8_t* bitmap = Font_GetBitmap(__c);
+    uint8_t* bitmap = (uint8_t*) Font_GetBitmap(__c);
     int _y = 0;
     for(int i = 0; i < 16; i++)
     {
@@ -65,10 +70,7 @@ void VDriver_DrawChar(char __c, int x, int y)
         uint8_t b = bitmap[i];
         for(int j = 0; j < 8; j++)
         {
-            uint32_t index = ((_x + x) + (_y + y) * width_screen) * bytes_per_pixel;
-            ((uint8_t*) framebuffer)[index] = (b >> (7 - j)) & 0x1 ? (color & 0xFF) : 0;
-            ((uint8_t*) framebuffer)[index + 1] = (b >> (7 - j)) & 0x1 ? (color >> 8 & 0xFF) : 0;
-            ((uint8_t*) framebuffer)[index + 2] = (b >> (7 - j)) & 0x1 ? (color >> 16 & 0xFF) : 0;
+            video_putpixel(_x + x, _y + y, (b >> (7 - j)) & 0x1 ? color : 0);
             _x++;
         }
         _y++;
@@ -82,10 +84,10 @@ void VDriver_ScrollUp()
 
     for(int i = 1; i < max_height_char; i++)
     {
-        memcpy(&framebuffer[(i - 1) * width_screen * 16 * bytes_per_pixel], &framebuffer[i * width_screen * 16 * bytes_per_pixel], width_screen * bytes_per_pixel * 16);
+        video_copypixel((i - 1) * width_screen * 16, i * width_screen * 16);
     }
 
-    memset(&framebuffer[(max_height_char - 1) * 16 * width_screen * bytes_per_pixel], 0, width_screen * 16 * bytes_per_pixel);
+    memset(&((uint8_t*) video_getframebuffer())[(max_height_char - 1) * width_screen * 16 * bytes_per_pixel], 0, width_screen * 16 * bytes_per_pixel);
     video_lines--;
 }
 
@@ -115,25 +117,29 @@ void VDriver_PutC(char _c)
     VDriver_ScrollUp();
 }
 
-void VDriver_CopyPixel(uint32_t from, uint32_t to) {
-    memcpy( &framebuffer[from * bytes_per_pixel], &framebuffer[to * bytes_per_pixel], (to - from) * bytes_per_pixel);
+void VDriver_IncColumn() {
+    video_rows++;
+    int index = video_rows + video_lines * max_width_char;
+    video_lines = (int)(index / max_width_char);
+    video_rows = index % max_width_char;
 }
-
-void VDriver_PutPixel(int x, int y, COLOR _color) {
-    int index = (x + y * width_screen) * bytes_per_pixel;
-    ((uint8_t*) framebuffer)[index + 0] = _color & 0xFF;
-    ((uint8_t*) framebuffer)[index + 1] = ( _color >> 8 ) & 0xFF;
-    ((uint8_t*) framebuffer)[index + 2] = (_color >> 16) & 0xFF;
+void VDriver_DecColumn() {
+    video_rows--;
+    int index = video_rows + video_lines * max_width_char;
+    video_lines = (int)(index / max_width_char);
+    video_rows = index % max_width_char;
 }
-
-uint8_t* VDriver_GetAddress() {
-    return framebuffer;
+void VDriver_IncLine() {
+    video_lines++;
+    int index = video_rows + video_lines * max_width_char;
+    video_lines = (int)(index / max_width_char);
+    video_rows = index % max_width_char;
 }
-
-uint32_t VDriver_GetPixel(int x, int y) {
-    int index = (x + y * width_screen) * bytes_per_pixel;
-    uint32_t color = framebuffer[index] | (framebuffer[index + 1] << 8) | ( framebuffer[index+2] << 16);
-    return color;
+void VDriver_DecLine() {
+    video_lines--;
+    int index = video_rows + video_lines * max_width_char;
+    video_lines = (int)(index / max_width_char);
+    video_rows = index % max_width_char;
 }
 
 uint16_t VDriver_GetWidth() {

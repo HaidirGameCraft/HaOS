@@ -12,6 +12,12 @@
 extern void vesa_info_block();
 extern void vesa_mode_info();
 
+extern void Halt();
+extern void Check_CPUID();
+extern void Check_LongMode();
+extern void Enable_Paging(uint32_t page_dir);
+extern void Go_To_LongMode();
+
 uint32_t *page_dir;
 uint32_t *kernel_page_table;
 
@@ -29,7 +35,34 @@ void boot_stage_main()
     bootInfo->font_address = 0x000A0000;
     bootInfo->vesa_info_block = (VesaInfoBlock*) vesa_info_block;
     bootInfo->vesa_mode_info = (VesaModeInfo*) vesa_mode_info;
-    
+
+    Check_CPUID();
+    Check_LongMode();
+
+#ifdef __OSX86_64__
+    uint64_t* pml4t = (uint64_t*) 0x00400000;
+    uint64_t* pdpt = (uint64_t*) 0x00401000;
+    uint64_t* pdt = (uint64_t*) 0x00402000;
+    uint64_t* pd = (uint64_t*) 0x00403000;
+    uint64_t* pt = (uint64_t*) 0x00404000;
+
+    for(int i = 0; i < 512; i++)
+    {
+        pt[i] = (i * 0x1000) | (1 << 1) | (1 << 0);
+    }
+
+    pml4t[0] = ((uint64_t) pdpt) | (1 << 1) | (1 << 0);
+    pdpt[0] = ((uint64_t) pdt) | (1 << 1) | (1 << 0);
+    pdt[0] = ((uint64_t) pd) | (1 << 1) | (1 << 0);
+    pd[0] = ((uint64_t) pt) | (1 << 1) | (1 << 0);
+    //pdt[0] = (uint64_t) pd | (1 << 1) | (1 << 0);
+
+    __asm__ volatile("mov %0, %%cr3" :: "r"((uint64_t) pml4t));
+    Enable_Paging((uint32_t) pml4t);
+    //Go_To_LongMode();
+    Halt();
+    return;
+#else
     // Setup Paging
     page_dir = (uint32_t*) 0x00400000;
     uint32_t* first_page_table = (uint32_t*) 0x00401000;
@@ -98,12 +131,9 @@ void boot_stage_main()
     page_dir[addr >> 22] = ((uint32_t) vesa_mode_page_table) | 0x03;
 
     // Enable Paging
-    __asm__ volatile("mov %0, %%cr3" :: "r"(page_dir));
-    
-    uint32_t cr0;
-    __asm__ volatile("mov %%cr0, %0" : "=r"(cr0));
-    cr0 |= 0x80000000;
-    __asm__ volatile("mov %0, %%cr0" :: "r"(cr0));
+    __asm__ volatile("mov %0, %%cr3" :: "r"((uint32_t) page_dir));
+    Enable_Paging((uint32_t) page_dir);
+#endif
     
     printf("KERNEL  BIN: Has been found\n");
     memory_initialize();

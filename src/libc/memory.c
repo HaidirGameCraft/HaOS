@@ -12,15 +12,21 @@ typedef struct {
     addr_t next;
 } __attribute__((packed)) memory_block_t;
 
-memory_block_t* heap_start = (memory_block_t*) VIRTUAL_HEAP_MEMORY_START;
-size_t size_heap = VIRTUAL_HEAP_MEMORY_END - VIRTUAL_HEAP_MEMORY_START;
+extern void _heap_start();
+extern void _heap_end();
+
+memory_block_t* heap_start = NULL;
+size_t size_heap = 0;
 
 void memory_initialize() {
+    heap_start = (memory_block_t*) _heap_start;
+    size_heap = _heap_end - _heap_start;
+
+    mmap((uint32_t) _heap_start, size_heap, ATTR_PAGE_PRESENT | ATTR_PAGE_RW);
+
     heap_start->free = 1;
     heap_start->size_block = size_heap;
     heap_start->next = 0;
-
-    //Page_SetMapping(VIRTUAL_HEAP_MEMORY_START, ATTR_PAGE_RW | ATTR_PAGE_PRESENT, size_heap);
 }
 
 uint32_t heap_size() {

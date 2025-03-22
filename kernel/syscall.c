@@ -5,6 +5,7 @@
 #include <memory.h>
 #include <driver/disk_driver.h>
 #include <driver/video_driver.h>
+#include <font.h>
 #include <fs/fat.h>
 #include <fs/fs.h>
 #include <stdio.h>
@@ -75,6 +76,7 @@ uint32_t syscall_handler()
         }
         break;
     case GETFONT_BITMAP:
+        eax = (addr_t) Font_GetBitmap((char) ebx);
         break;
     case GETWS:
         eax = VDriver_GetWidth();
@@ -82,6 +84,17 @@ uint32_t syscall_handler()
     case GETHS:
         eax = VDriver_GetHeight();
         break;
+    case COPY_PIXEL:
+        VDriver_CopyPixel(ebx, ecx);
+        break;
+    case GETVIDEOBUFFERADDRESS:
+        eax = (addr_t) VDriver_GetAddress();
+        break;
+    case MMAP: sys_mmap(edi, ecx, ebx); break;
+    case MALLOC: eax = sys_malloc(ecx); break;
+    case FREE: sys_free(edi); break;
+    case GETKEY: eax = sys_getkeypress(); break;
+    case GETKEYSTATUS: eax = sys_getkeystatus(); break;
     default:
         break;
     }

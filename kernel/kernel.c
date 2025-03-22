@@ -5,6 +5,7 @@
 #include <driver/video_driver.h>
 #include <driver/keyboard_driver.h>
 #include <driver/disk_driver.h>
+#include <timer.h>
 #include <cpu/gdt.h>
 #include <elf/elf.h>
 #include <page.h>
@@ -38,7 +39,11 @@ void kernel_main() {
     
     gdt_initialize();
     idt_initialize();
+
+    __asm__ volatile("cli");
+    PIT_Init(1024);
     Keyboard_Initialize();
+    __asm__ volatile("sti");
 
     Keyboard_PushEvent( key_callback );
 
@@ -76,8 +81,7 @@ void kernel_main() {
     printf("Heap Size: %x\n", heap_size());
     
 
-    // int exec = execvf("tty.elf");
-    // printf(buffer);
+    int exec = execvf("tty.elf");
     // close(fd);
 
     return;
@@ -86,7 +90,7 @@ void kernel_main() {
 void key_callback(char sc, uint8_t key, uint8_t status) {
     if( status == KEYBOARD_KEY_PRESS )
     {
-        VDriver_PutC( sc );
+        //VDriver_PutC( sc );
     }
 }
 
