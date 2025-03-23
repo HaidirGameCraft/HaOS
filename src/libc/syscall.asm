@@ -122,6 +122,46 @@ video_getframebuffer:
     syscall
     ret
 
+; opendir(const char* folder_name);
+global opendir
+opendir:
+    mov eax, 20
+    mov edi, dword [esp + 4]
+    int 0x80
+    ret
+; closedir(uint32_t __dir);
+global closedir
+closedir:
+    mov eax, 21
+    mov esi, dword [esp + 4]
+    int 0x80
+    ret
+; readdir(uint32_t __dir, FILE* __output);
+global readdir
+readdir:
+    mov eax, 22
+    mov esi, dword [esp + 4]
+    mov edi, dword [esp + 8]
+    int 0x80
+    ret
+
+; mkdir(const char* folder_name);
+global mkdir
+mkdir:
+    mov eax, 23
+    mov edi, dword [esp + 4]
+    int 0x80
+    ret
+; mkfile(const char* filename, char* buffer, size_t size);
+global mkfile
+mkfile:
+    mov eax, 24
+    mov edi, dword [esp + 4]
+    mov esi, dword [esp + 8]
+    mov ecx, dword [esp + 12]
+    int 0x80
+    ret
+    
 global HALT
 HALT:
     cli

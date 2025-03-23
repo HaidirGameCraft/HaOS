@@ -3,6 +3,8 @@
 
 #include <cpu/cpu.h>
 #include <stdint.h>
+#include <fs/fat.h>
+
 
 #define __SYSCALL__ extern
 
@@ -25,7 +27,12 @@ enum SYSCALL_ {
     GETKEY = 16,
     GETKEYSTATUS = 17,
     COPY_PIXEL = 18,
-    GETVIDEOBUFFERADDRESS = 19
+    GETVIDEOBUFFERADDRESS = 19,
+    OPEN_DIR = 20,
+    CLOSE_DIR = 21,
+    READ_DIR = 22,
+    MKDIR = 23,
+    MKFILE = 24
 };
 
 uint32_t syscall_handler();
@@ -37,7 +44,10 @@ DWORD   sys_getsize(DWORD __fd);
 VOID    sys_read(DWORD __fd, BYTE* __buffer, size_t __size);
 VOID    sys_write(DWORD __fd, BYTE* __buffer, size_t __size);
 DWORD   sys_mkdir(const char* __dirname);
-DWORD   sys_mkfile(const char* __filename);
+DWORD   sys_mkfile(const char* __filename, char* buffer, size_t size);
+DWORD   sys_opendir(const char* __dirname);
+VOID    sys_closedir(DWORD __fd);
+DWORD   sys_readdir(DWORD __fd, FILE* __output);
 DWORD   sys_malloc(DWORD __size);
 VOID    sys_free(DWORD __ptr);
 VOID    sys_mmap(DWORD __virtual_address, DWORD __size, BYTE __flags);
@@ -61,4 +71,9 @@ __SYSCALL__ VOID        _free(void* __ptr);
 __SYSCALL__ VOID        mmap(uint32_t __virtual_address, size_t __size, uint8_t __flags);
 __SYSCALL__ WORD        getkeypress();
 __SYSCALL__ WORD        getkeystatus();
+__SYSCALL__ DWORD       opendir(const char* folder_name);
+__SYSCALL__ DWORD       closedir(uint32_t __dir);
+__SYSCALL__ DWORD       readdir(uint32_t __dir, FILE* __output);
+__SYSCALL__ DWORD       mkdir(const char* folder_name);
+__SYSCALL__ DWORD       mkfile(const char* filename, char* buffer, size_t size);
 #endif

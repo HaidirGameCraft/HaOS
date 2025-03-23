@@ -10,6 +10,14 @@ typedef struct {
     size_t size;
 } file_t;
 
+typedef struct {
+    char name[256];
+    addr_t parent_dir;
+    uint32_t cluster;
+    uint32_t index;
+    uint32_t reserved;
+} dir_t;
+
 DWORD fopen(const char* filename, const char* flags);
 void fclose(DWORD __fd);
 void fseek(DWORD __fd, long position);

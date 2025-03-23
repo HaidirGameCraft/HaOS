@@ -3,44 +3,57 @@
 #include <memory.h>
 #include <stdio.h>
 
+void __init_drive_lba(uint32_t lba)
+{
+    port_outb(ATA_PRIMARY_DRIVE | ATA_SELECT_DRIVE, (ATA_MASTER_BIT << 4) | ( (lba >> 24) & 0x0F));
+
+    port_outb(ATA_PRIMARY_DRIVE | ATA_SECTOR_COUNT_PORT, 1);
+    port_outb(ATA_PRIMARY_DRIVE | ATA_LBA_LOW_PORT, lba & 0xFF);
+    port_outb(ATA_PRIMARY_DRIVE | ATA_LBA_MID_PORT, (lba >> 8) & 0xFF);
+    port_outb(ATA_PRIMARY_DRIVE | ATA_LBA_HIGH_PORT, (lba >> 16) & 0xFF);
+}
+
+void wait_drive_busy()
+{
+    while( port_inb(ATA_PRIMARY_DRIVE | ATA_STATUS_PORT) & ATA_STATUS_BSY_BIT );
+}
+
+void wait_drive_ready_accept_PIO()
+{
+    while( !(port_inb(ATA_PRIMARY_DRIVE | ATA_STATUS_PORT ) & ATA_STATUS_DRQ_BIT) );
+}
+
 void disk_read(uint32_t lba, void* buffer) {
-    port_outb(0x1F6, 0xE0 | ( (lba >> 24) & 0x0F));
+    __init_drive_lba( lba );
 
-    port_outb(0x1F2, 1);
-    port_outb(0x1F3, lba & 0xFF);
-    port_outb(0x1F4, (lba >> 8) & 0xFF);
-    port_outb(0x1F5, (lba >> 16) & 0xFF);
+    port_outb(ATA_PRIMARY_DRIVE | ATA_COMMAND_PORT, ATA_COMMAND_READ);         // READ SECTOR CMD
 
-    port_outb(0x1F7, 0x20);         // READ SECTOR CMD
-
-    while( port_inb(0x1F7) & 0x80 );
+    // Wait until driver is not busy
+    wait_drive_busy();
 
     for(int i = 0; i < 256; i++)
     {
-        ((uint16_t*) buffer)[i] = port_inw(0x1F0);
+        ((uint16_t*) buffer)[i] = port_inw(ATA_PRIMARY_DRIVE | ATA_DATA_PORT);
     }
 }
 
 void disk_write(uint32_t lba, void* buffer) {
-    port_outb(0x1F6, 0xE0 | ( (lba >> 24) & 0x0F));
-    
-    port_outb(0x1F2, 1);
-    port_outb(0x1F3, lba & 0xFF);
-    port_outb(0x1F4, (lba >> 8) & 0xFF);
-    port_outb(0x1F5, (lba >> 16) & 0xFF);
+    __init_drive_lba( lba );
 
-    port_outb(0x1F7, 0x30);         // WRITE SECTOR CMD
+    port_outb(ATA_PRIMARY_DRIVE | ATA_COMMAND_PORT, ATA_COMMAND_WRITE);         // WRITE SECTOR CMD
 
-    while( port_inb(0x1F7) & 0x80 );
-    while( !(port_inb(0x1F7) & 0x08) );
+    wait_drive_busy();
+    wait_drive_ready_accept_PIO();
+
     char* b = (char*) buffer;
 
     for(int i = 0; i < 256; i++)
     {
-        port_outw(0x1F0, ((uint16_t*) buffer)[i]);
+        port_outw(ATA_PRIMARY_DRIVE | ATA_DATA_PORT, ((uint16_t*) buffer)[i]);
     }
 
-    while( port_inb(0x1F7) & 0x80 );
+    // Wait until the driver has complete write
+    wait_drive_busy();
 }
 
 void disk_write_addr(uint32_t addr, void* buffer, size_t size) {
@@ -50,16 +63,9 @@ void disk_write_addr(uint32_t addr, void* buffer, size_t size) {
     {
         uint32_t lba = (int)(addr / 512);
         uint32_t offset = addr % 512;
-        port_outb(0x1F6, 0xE0 | ( (lba >> 24) & 0x0F));
-    
-        port_outb(0x1F2, 1);
-        port_outb(0x1F3, lba & 0xFF);
-        port_outb(0x1F4, (lba >> 8) & 0xFF);
-        port_outb(0x1F5, (lba >> 16) & 0xFF);
 
-        port_outb(0x1F7, 0x20);
-
-        while( port_inb(0x1F7) & 0x80 );
+        disk_read(lba, (void*) _b);
+        __init_drive_lba( lba );
 
         for(int i = offset; i < 512; i++)
         {
@@ -72,16 +78,17 @@ void disk_write_addr(uint32_t addr, void* buffer, size_t size) {
             addr++;
         }
     
-        port_outb(0x1F7, 0x30);         // READ SECTOR CMD
+        port_outb(ATA_PRIMARY_DRIVE | ATA_COMMAND_PORT, ATA_COMMAND_WRITE);         // READ SECTOR CMD
     
-        while( port_inb(0x1F7) & 0x80 );
+        wait_drive_busy();
+        wait_drive_ready_accept_PIO();
 
         for(int i = 0; i < 512; i++)
         {
-            port_outb(0x1F0, ((uint8_t*) _b)[i]);
+            port_outb(ATA_PRIMARY_DRIVE | ATA_DATA_PORT, ((uint8_t*) _b)[i]);
         }
 
-        port_outb(0x1F7, 0xE7);
+        wait_drive_busy();
     }
     free(_b);
 }

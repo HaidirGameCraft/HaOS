@@ -280,64 +280,76 @@ DWORD   sys_getsize(DWORD __fd) {
 }
 
 DWORD   sys_mkdir(const char* __dirname) {
-    struct FAT_Header* header = get_fat_header();
-
-    int _index = 0;
-    uint32_t sector_parent_dir = 0;
-    string_array_t* _dirsplit = str_split(__dirname, '/');
-
-    uint32_t cluster = header->cluster;
-    uint32_t fat_region = header->reserved_sectors;
-    uint32_t data_region = fat_region + (header->fat_numbers * header->sectors_per_fat);
-    int sectors_per_dir = header->bytes_Per_sector / sizeof( struct FATDirectory );
-
-    char* buffer = (char*) malloc( header->bytes_Per_sector );
-    // FInd the empty spot on FAT region FAT32
-    int _dxFAT = 0;
-    bool _find_fslot = false;
-    int _index_fslot = -1;
-    
-    while(_dxFAT < header->sectors_per_fat)
-    {
-        uint32_t fat_sector = header->reserved_sectors + _dxFAT;
-        disk_read(fat_sector, buffer);
-        for(int i = 0; i < header->bytes_Per_sector / sizeof( uint32_t ); i++)
-        {
-            uint32_t* fslot = &((uint32_t*) buffer)[i];
-            if( fslot == 0 )
-            {
-                *fslot = END_OF_FOLDER;
-                disk_write(fat_sector, buffer);
-                _index_fslot = _dxFAT * ( header->bytes_Per_sector / sizeof( uint32_t ) ) + i;
-            }
-        }
-
-        if( _index_fslot != -1 )
-            break;
-
-        _dxFAT++;
-    }
-    // Find the empty spot on Data region FAT32
-    while( cluster < END_OF_FOLDER )
-    {
-        uint32_t cluster_region = data_region + ( cluster - 2 ) * header->sectors_per_cluster;
-        disk_read(cluster_region, buffer);
-
-        for(int i = 0; i < sectors_per_dir; i++)
-        {
-            struct FATDirectory* dir = &((struct FATDirectory*) buffer)[i];
-
-            if( dir->attribute != 0 )
-                continue;
-
-            
-        }
-    }
-
-    str_array_clear(_dirsplit);
-    free(_dirsplit);
+    FILE* dir = make_dir(__dirname);
+    if( dir >= 0x00100000 )
+        free( dir );
+    return (uint32_t) dir;
 }
 
-DWORD   sys_mkfile(const char* __filename) {
+DWORD   sys_mkfile(const char* __filename, char* buffer, size_t size) {
+    FILE* file = make_entry(__filename, FAT_ARCHIVE, buffer, size);
+    if( file >= 0x00100000 )
+        free( file );
+    return (uint32_t) file;
+}
 
+DWORD   sys_opendir(const char* __dirname) {
+    DIR* dir = open_dir(__dirname);
+
+    // Malloc dir_t
+    dir_t* fd = malloc( sizeof( dir_t ) );
+    memset( fd, 0, sizeof(dir_t) );
+
+    fd->parent_dir = (addr_t) calloc(dir->parent);
+    fd->cluster = dir->cluster;
+    fd->index = dir->index;
+    
+    // Free dir
+    free( dir->parent );
+    free( dir );
+
+    // Find index
+    int idx_fa = 3;
+    for(idx_fa = 3; idx_fa < MAX_FILE; idx_fa++)
+    {
+        if( __fa[idx_fa] == 0 )
+        {
+            __fa[idx_fa] = (file_t*) fd;
+            break;
+        }
+    }
+
+    if( idx_fa == MAX_FILE )
+    {
+        free( fd );
+        return -1;
+    }
+
+    return idx_fa;
+}
+VOID    sys_closedir(DWORD __fd) {
+    if( __fd < 3 || __fd >= MAX_FILE )
+        return;
+
+    dir_t* d = (dir_t*) ((uint32_t) __fa[__fd]);
+    free( ((FILE*) d->parent_dir)->filename );
+    free( (FILE*) d->parent_dir );
+    free( d );
+    __fa[__fd] == NULL;
+}
+
+DWORD   sys_readdir(DWORD __fd, FILE* __output) {
+    if( __fd < 3 || __fd >= MAX_FILE )
+        return 1;
+
+    dir_t* dir = (dir_t*) ((uint32_t) __fa[__fd]);
+    DIR d;
+    d.parent = (FILE*) dir->parent_dir;
+    d.index = dir->index;
+    d.cluster = dir->cluster;
+
+    uint32_t r = read_next_dir(&d, __output);
+    dir->index = d.index;
+    dir->cluster = d.cluster;
+    return r;
 }

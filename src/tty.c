@@ -63,14 +63,66 @@ int main()
 }
 
 void command(char* text_buffer, int* index_buffer) {
-    if( strcmp("CLEAR", text_buffer) == 0 )
+    string_array_t* argv = str_split(text_buffer, ' ');
+    char* cmd = str_array_get(argv, 0);
+
+    if( cmd == NULL )
+    {
+        printf("Not a Command...\n");
+        str_array_clear( argv );
+        free( argv );
+        
+        memset(text_buffer, 0, *index_buffer);
+        *index_buffer = 0;
+        return;
+    }
+
+    if( strcmp("CLEAR", cmd) == 0 )
     {
         VDrider_ClearScreen(0x000000);
     }
-    else if ( strncmp("PRINT", text_buffer, 5) == 0 )
+    else if ( strcmp("PRINT", cmd) == 0 )
     {
-
+        for(int i = 1; i < argv->size; i++)
+        {
+            printf("%s ", str_array_get(argv, i));
+        }
+        printf("\n");
     }
+    else if (strcmp("MKDIR", cmd) == 0 )
+    {
+        if( str_array_get(argv, 1) == NULL )
+        {
+            printf("Error> No File Path\n");
+        }
+        else {
+            uint32_t result = mkdir(str_array_get(argv, 1));
+            if( result == ENTRY_NO_PARENT )
+            {
+                printf("Error> Parent Path is Not Exists\n");
+            }
+            else if ( result == ENTRY_PARENT_NOT_DIRECTORY )
+            {
+                printf("Error> Parent Path is Not Directory\n");
+            }
+        }
+    }
+    else if ( strcmp("LS", cmd) == 0 )
+    {
+        uint32_t fd = opendir("");
+        FILE* __output = (FILE*) malloc( sizeof( FILE ) );
+        while( readdir(fd, __output ) == 0 )
+        {
+            printf("%s \n", __output->filename);
+            
+            _free( __output->filename );
+            free( __output );
+        }
+        closedir( fd );
+    }
+
+    str_array_clear( argv );
+    free( argv );
 
     memset(text_buffer, 0, *index_buffer);
     *index_buffer = 0;

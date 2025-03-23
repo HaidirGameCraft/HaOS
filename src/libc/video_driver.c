@@ -50,12 +50,32 @@ void VDrider_ClearScreen(COLOR color) {
     video_lines = 0;
     video_rows = 0;
 
-    for(int i = 0; i < height_screen; i++)
+    framebuffer = (uint8_t*) video_getframebuffer();
+    uint8_t* f8 = (uint8_t*) framebuffer;
+    int size = width_screen * height_screen * bytes_per_pixel;
+    while( size >= 9 )
     {
-        for(int j = 0; j < width_screen; j++)
-        {
-            video_putpixel(j, i, color);
-        }
+        *f8++ = color & 0xFF;
+        *f8++ = (color << 8) & 0xFF;
+        *f8++ = (color << 16) & 0xFF;
+
+        *f8++ = color & 0xFF;
+        *f8++ = (color << 8) & 0xFF;
+        *f8++ = (color << 16) & 0xFF;
+
+        *f8++ = color & 0xFF;
+        *f8++ = (color << 8) & 0xFF;
+        *f8++ = (color << 16) & 0xFF;
+
+        size -= 9;
+    }
+
+    while( size > 0 )
+    {
+        *f8++ = color & 0xFF;
+        *f8++ = (color << 8) & 0xFF;
+        *f8++ = (color << 16) & 0xFF;
+        size -= 3;
     }
 }
 

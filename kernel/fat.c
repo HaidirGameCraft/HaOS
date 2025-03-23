@@ -157,7 +157,7 @@ FILE* find_file(const char* filename) {
         printf("File Not Found\n");
         free( buffer );
         free( target );
-        return NULL;
+        return INVALID_FILE_NOT_FOUND;
     }
     
     free( buffer );
@@ -209,7 +209,7 @@ FILE* make_entry(const char* filename, uint8_t flags, char* __buffer, size_t siz
             str_array_clear( __filepathspt );
             free( __filepathspt );
             free( dir );
-            return NULL;
+            return ENTRY_NO_PARENT;
         }
 
         if( !(parent_dir->flags & FAT_DIRECTORY) )
@@ -219,7 +219,7 @@ FILE* make_entry(const char* filename, uint8_t flags, char* __buffer, size_t siz
             str_array_clear( __filepathspt );
             free( __filepathspt );
             free( dir );
-            return NULL;
+            return ENTRY_PARENT_NOT_DIRECTORY;
         }
 
         cluster = (parent_dir->high_cluster << 16) | parent_dir->low_cluster;

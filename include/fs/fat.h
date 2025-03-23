@@ -5,6 +5,11 @@
 #define END_OF_FOLDER 0x0FFFFFF8
 #define END_OF_FILE 0x0FFFFFFF
 
+// Invalid Error
+#define ENTRY_NO_PARENT (void*) 0x0001
+#define ENTRY_PARENT_NOT_DIRECTORY (void*) 0x0002
+#define INVALID_FILE_NOT_FOUND (void*) 0x0003
+
 struct FAT_Header {
     uint8_t jmp[3];
     uint8_t oem[8];

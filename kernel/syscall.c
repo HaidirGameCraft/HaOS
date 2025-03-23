@@ -95,6 +95,11 @@ uint32_t syscall_handler()
     case FREE: sys_free(edi); break;
     case GETKEY: eax = sys_getkeypress(); break;
     case GETKEYSTATUS: eax = sys_getkeystatus(); break;
+    case OPEN_DIR: eax = sys_opendir((char*) edi); break;
+    case CLOSE_DIR: sys_closedir(esi); break;
+    case READ_DIR: eax = sys_readdir(esi, (FILE*) edi); break;
+    case MKDIR: eax = sys_mkdir((char*) edi); break;
+    case MKFILE: eax = sys_mkfile((char*) edi, (char*) esi, ecx); break;
     default:
         break;
     }

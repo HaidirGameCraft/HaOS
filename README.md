@@ -7,7 +7,15 @@ This might not be COMPLETE due the lack of time and knowledge. I can update this
 ### Inspiration
 This project inspire me from [OSDev](https://wiki.osdev.org/) to learning about it. This website is useful to let me know **The Complexity of OS Development**.
 
-## Update
+## New Update
+1. TTY (User-space)
+    - Add new command on terminal like
+        - CLEAR
+        - PRINT \< string... \>
+        - MKDIR
+    - making vdriver clear fastest
+    
+## Old Update
 1. File System (FAT32)
     - Added:
         - make_dir
@@ -47,6 +55,11 @@ at int 0x80, following this:
 | 0x11 | getkeystatus | | | | |
 | 0x12 | video_copypixel | uint32_t from| uint32_t to | | |
 | 0x13 | video_getframebuffer | | | | |
+| 0x14 | opendir | | | const char* filename | |
+| 0x15 | closedir | | | | uint32_t __dir |
+| 0x16 | readdir | | | FILE* output| uint32_t __dir |
+| 0x17 | mkdir | | | const char* folder_name | |
+| 0x18 | mkfile | | size_t size | const char* filename | char* buffer |
 
 ## Installing
 Download or Copy this project
