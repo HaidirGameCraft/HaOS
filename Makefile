@@ -5,8 +5,17 @@ LD=$(I386)/i386-elf-ld
 ARCHITECTURE=x86
 OUTPUT_FILE=os.img
 DRIVE_NAME="Local Disk"
-NASMFLAGS=
 CFLAGS=-m32 -ffreestanding -Wall -Wextra -fno-pie -nostdlib
+ifeq (${ARCHITECTURE}, x86)
+	CBOOTFLAGS=-m32 -ffreestanding -Wall -Wextra -fno-pie -nostdlib
+	NASMFLAGS=-f elf32
+	LDBOOT=-m elf_i386
+else
+	CBOOTFLAGS=-m64 -ffreestanding -Wall -Wextra -fno-pie -nostdlib
+	NASMFLAGS=-f elf64
+	LDBOOT=-m elf_x86_64
+endif
+
 INCLUDEPATH=-Iinclude/
 
 ASM_SOURCES=$(shell find boot/boot_stage/${ARCHITECTURE} -name "*.asm")
@@ -49,14 +58,14 @@ insert_file:
 	dd if=build/bootloader/load_stage.bin of=$(OUTPUT_FILE) bs=512 seek=2 conv=notrunc
 
 compile_file: $(ASM_OBJ_SOURCES) $(C_OBJ_SOURCES) build_kernel
-	ld -m elf_i386 -T boot/boot_stage/link.ld -o build/boot_stage/${ARCHITECTURE}/boot_stage.bin build/boot_stage/${ARCHITECTURE}/main.o $(C_OBJ_SOURCES) --oformat binary
+	ld $(LDBOOT) -T boot/boot_stage/link.ld -o build/boot_stage/${ARCHITECTURE}/boot_stage.bin build/boot_stage/${ARCHITECTURE}/main.o $(C_OBJ_SOURCES) --oformat binary
 
 build/boot_stage/${ARCHITECTURE}/%.o: boot/boot_stage/${ARCHITECTURE}/%.asm
 	echo "$< -> $@"
-	nasm $(NASMFLAGS) -f elf32 $< -o $@
+	nasm $(NASMFLAGS) $< -o $@
 build/boot_stage/${ARCHITECTURE}/%.c.o: boot/boot_stage/${ARCHITECTURE}/%.c
 	echo "$< -> $@"
-	gcc $(CFLAGS) -c $< -o $@ $(INCLUDEPATH)
+	gcc $(CBOOTFLAGS) -c $< -o $@ $(INCLUDEPATH)
 
 run:
 	qemu-system-x86_64 -hda os.img

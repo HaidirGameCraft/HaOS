@@ -22,13 +22,16 @@ void key_callback(char sc, uint8_t key, uint8_t status);
 void kernel_main() {
 
     BootInfo_t* boot_info = (BootInfo_t*) 0x00020000;
-    memory_initialize();
-    fat_initialize();
-
     VDriver_Initialize(boot_info->vesa_info_block, boot_info->vesa_mode_info);
     VDrider_ClearScreen(0x00000000);
+    //HALT();
+    
+    memory_initialize();
+    fat_initialize();
+    
     void* font_buffer = (void*) malloc(9 * 512);
     Font_InitAddress("bitfont.bin", (uint32_t) font_buffer);
+
 
     extern void _kernel_start();
     extern void _kernel_end();

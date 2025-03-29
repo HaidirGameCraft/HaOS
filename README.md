@@ -13,7 +13,12 @@ This project inspire me from [OSDev](https://wiki.osdev.org/) to learning about 
         - CLEAR
         - PRINT \< string... \>
         - MKDIR
+        - LS
     - making vdriver clear fastest
+
+## In Coming Feature
+2. For x86_64 (64 Bits OS)
+    - I`m working for x86_64 to make this OS support. Its's hard to make. So, I try to find the code from online source. Hopefully, This may be work.
     
 ## Old Update
 1. File System (FAT32)

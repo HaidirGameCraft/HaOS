@@ -146,8 +146,8 @@ Check_LongMode:
 	pop eax
 	ret
 
-global Halt 
-Halt:
+global HALT 
+HALT:
 	cli
 	hlt
 	jmp $
