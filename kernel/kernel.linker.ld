@@ -22,5 +22,6 @@ SECTIONS
         *(COMMON)
         *(.bss)
     }
+    __heap_start = .;
     __kernel_end = .;
 }

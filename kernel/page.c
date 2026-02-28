@@ -81,6 +81,7 @@ void page_mapv( dword virt, dword length ) {
             page_directory[ PAGEDIR_INDEX( _v ) ] = ( page ) | (1 << 0) | (1 << 1);
         }
         page_mapframe( (dword)( page_directory[PAGEDIR_INDEX(_v)] & ~0xFFF ));
+        if( _f[PAGETABLE_INDEX(_v)] != 0 ) continue;
         _f[PAGETABLE_INDEX(_v)] = ((dword) page_getframe()) | (1 << 0) | (1 << 1);
     }
     page_umapframe();
@@ -98,6 +99,7 @@ void page_mapvp( dword virt, dword phys, dword length ) {
             page_directory[ PAGEDIR_INDEX( _v ) ] = ( page ) | (1 << 0) | (1 << 1);
         }
         page_mapframe( (dword)( page_directory[PAGEDIR_INDEX(_v)] & ~0xFFF ));
+        if( _f[PAGETABLE_INDEX(_v)] != 0 ) continue;
         _f[PAGETABLE_INDEX(_v)] = ((dword) _p) | (1 << 0) | (1 << 1);
     }
     page_umapframe();

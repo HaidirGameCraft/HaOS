@@ -2,6 +2,7 @@
 #include <header.h>
 #include <driver/video_driver.h>
 
+#include <alloc.h>
 #include <page.h>
 #include <serial.h>
 #include <cpu/cpu.h>
@@ -15,10 +16,10 @@ void kernel_main( bootstage_info_t* bootstage_info )
     page_init();
     gdt_init();
     idt_init();
+    init_alloc();
     term_init();
 
     video_driver_mapped();
-    serial_printf("Hello, %s\n", "Hai");
     video_driver_clearScreen( R8G8B8(0, 0, 0) );
 
     term_run();

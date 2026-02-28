@@ -13,9 +13,13 @@ struct term_text_cursor
 
 dword text_color = 0;
 dword background_color = 0;
+int max_char_width = 0;
+int max_char_height = 0;
 
 struct term_text_cursor ttext_cursor;
 struct term_text_cursor prev_ttext_cursor;
+
+void term_drawChar( char c, dword color );
 
 void term_init() {
     ttext_cursor.x = 0;
@@ -31,26 +35,35 @@ void term_run() {
     word width, height;
     video_driver_getsize(&width, &height);
 
-    int max_char_width = (int)(width / 8);
-    int max_char_height = (int)(height / 16);
+    max_char_width = (int)(width / 8);
+    max_char_height = (int)(height / 16);
 
     while( true )
     {
         char key = getchar();
         if( key == 0 ) continue;
-        
-        if( key == 0x0A )
+        else if( key == 0x08 )
         {
-            ttext_cursor.x = 0;
-            ttext_cursor.y++;
-            continue;
+
+        } else {
+            term_drawChar( key, text_color );
         }
-        int index = ttext_cursor.x + ttext_cursor.y * max_char_width;
-
-        video_driver_drawChar( key, ttext_cursor.x * 8, ttext_cursor.y * 16, text_color );
-
-        index++;
-        ttext_cursor.x = (dword)(index % max_char_width );
-        ttext_cursor.y = (dword)(index / max_char_width );
+        
     }
+}
+
+void term_drawChar( char c, dword color ) {
+    if( c == 0x0A )
+    {
+        ttext_cursor.x = 0;
+        ttext_cursor.y++;
+        return;
+    }
+
+    int index = ttext_cursor.x + ttext_cursor.y * max_char_width;
+    video_driver_drawChar( c, ttext_cursor.x * 8, ttext_cursor.y * 16, color );
+
+    index++;
+    ttext_cursor.x = (dword)(index % max_char_width );
+    ttext_cursor.y = (dword)(index / max_char_width );
 }

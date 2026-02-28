@@ -81,9 +81,6 @@ serial_connect:
 
 global serial_disconnect
 serial_disconnect:
-    push ebp
-    mov ebp, esp
-
     mov ebx, dword [esp + 4]
     ; Disable Interrupt
     mov dx, bx
@@ -94,7 +91,7 @@ serial_disconnect:
     ; Disble DLAB
     mov dx, bx
     add dx, 3
-    and al, ~(1 << 7)
+    xor ax, ax
     out dx, al
 
     ; Disable FIFO
@@ -103,12 +100,11 @@ serial_disconnect:
     mov al, 0x06
     out dx, al
 
+    ; Clearing all FIFO
     mov dx, bx
     add dx, 4
-    mov al, 0x0B
+    mov al, 0x00
     out dx, al
-
-
     ret
 
 

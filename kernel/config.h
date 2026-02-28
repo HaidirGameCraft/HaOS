@@ -5,3 +5,4 @@
 
 extern void __kernel_start();
 extern void __kernel_end();
+extern void __heap_start();
