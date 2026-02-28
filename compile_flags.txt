@@ -1,0 +1,5 @@
+-Ikernel/
+-ffreestanding
+-nostdlib
+-Wextra
+-Wall

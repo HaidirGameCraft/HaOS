@@ -1,0 +1,7 @@
+#pragma once
+
+#define PAGE_BITMAP_ADDRESS     0x1000
+#define PAGE_BITMAP_SIZE        0x1000
+
+extern void __kernel_start();
+extern void __kernel_end();
