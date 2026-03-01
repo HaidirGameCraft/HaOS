@@ -53,3 +53,7 @@ void    video_driver_drawChar( char c, dword x, dword y, dword color ) {
         }
     }
 }
+
+dword   video_driver_getframebuffer() {
+    return (dword) framebuffer;
+}

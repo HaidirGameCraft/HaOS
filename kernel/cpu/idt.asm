@@ -21,6 +21,22 @@ isr_stub:
     sti
     iret        ; Interrupt return
 
+isr_stub_halt:
+    pushf   ; Push the Eflags
+    pusha   ; Push all register
+
+    [extern isr_handle]
+    call isr_handle
+
+    popa    ; Pop all register
+    popf    ; Pop the Eflags
+    add esp, 8
+.halt:
+    hlt
+    jmp .halt
+    sti
+    iret        ; Interrupt return
+
 irq_stub:
     pushf
     pusha
@@ -38,7 +54,7 @@ irq_stub:
 isr_%1:
     cli
     push dword %1
-    jmp isr_stub
+    jmp isr_stub_halt
 %endmacro
 
 %macro isr_no_error 1
@@ -66,13 +82,13 @@ isr_no_error  4
 isr_no_error  5
 isr_no_error  6
 isr_no_error  7
-isr_no_error  8
+isr_error  8
 isr_no_error  9
-isr_no_error 10
-isr_no_error 11
-isr_no_error 12
-isr_no_error 13
-isr_no_error 14
+isr_error 10
+isr_error 11
+isr_error 12
+isr_error 13
+isr_error 14
 isr_no_error 15
 isr_no_error 16
 isr_no_error 17

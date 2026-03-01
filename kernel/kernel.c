@@ -14,13 +14,14 @@ void kernel_main( bootstage_info_t* bootstage_info )
 {
     video_driver_init( bootstage_info );
     page_init();
+    video_driver_mapped();
+
+    term_init();
+    video_driver_clearScreen( R8G8B8(0, 0, 0) );
     gdt_init();
     idt_init();
     init_alloc();
-    term_init();
-
-    video_driver_mapped();
-    video_driver_clearScreen( R8G8B8(0, 0, 0) );
+    // printf("Hai %x\n", 0xAB);
 
     term_run();
 }

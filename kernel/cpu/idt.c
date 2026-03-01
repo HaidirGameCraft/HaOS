@@ -2,13 +2,49 @@
 #include <serial.h>
 #include <io/port.h>
 #include "pic.h"
+#include <io.h>
 
 #include <time.h>
-#include <driver/keyboard_driver.h>]
+#include <driver/keyboard_driver.h>
 
 idt_entry_t idt_entries[256];
 dword interrupt_registers[256];
 idt_descriptor_t idt_desc;
+
+static const char* interrupt_descriptor_message[] = {
+    "Divide With Zero Error",
+    "Debug Exceptions",
+    "Non Maskable Interrupt",
+    "Breakpoint",
+    "Overflow",
+    "Bounds Check",
+    "Invalid Opcode",
+    "Coprocessor Not Available",
+    "Double Fault",
+    "Reserved",
+    "Invalid Task State Segment",
+    "Segment Not Present",
+    "Stack Exception",
+    "General Protection Fault",
+    "Page Fault",
+    "Reserved",
+    "Coprecessor Error",
+    "Reserved",
+    "Reserved",
+    "Reserved",
+    "Reserved",
+    "Reserved",
+    "Reserved",
+    "Reserved",
+    "Reserved",
+    "Reserved",
+    "Reserved",
+    "Reserved",
+    "Reserved",
+    "Reserved",
+    "Reserved",
+    "Reserved"
+};
 
 extern void interrupt_x86();
 void idt_init() {
@@ -23,15 +59,19 @@ void idt_init() {
     }
 
     pic_remapped();
+    print("Programmable Interrupt Controller Installed!\n");
 
     idt_desc.limit = sizeof( idt_entries ) - 1;
     idt_desc.base = (dword) idt_entries;
 
     idt_install( (dword) &idt_desc );
+    print("Interrupt Descriptor Table Installed!\n");
     
     // Timer Programmable Interrupt for (IRQ0)
     time_init();
+    print("Programmable Interrupt Time Installed!\n");
     keyboard_init();
+    print("Keyboard Interrupt Installed!\n");
     __asm__ volatile("sti");
     
 }
@@ -55,6 +95,7 @@ void interrupt_register( int index, dword offset ) {
 
 // ISR - Interrupt Service Request
 void isr_handle( cpu_register_t creg ) {
+    serial_printf("Interrupt: %s\n", interrupt_descriptor_message[creg.interrupt_code] );
     serial_printf("eax: 0x%x\n", creg.eax );
     serial_printf("ecx: 0x%x\n", creg.ecx );
     serial_printf("edx: 0x%x\n", creg.edx );
@@ -66,6 +107,19 @@ void isr_handle( cpu_register_t creg ) {
     serial_printf("eflags: 0x%x\n", creg.eflags );
     serial_printf("interrupt code: 0x%x\n", creg.interrupt_code );
     serial_printf("error code: 0x%x\n", creg.error_code );
+
+    printf("Interrupt: %s\n", interrupt_descriptor_message[creg.interrupt_code] );
+    printf("eax: 0x%x\n", creg.eax );
+    printf("ecx: 0x%x\n", creg.ecx );
+    printf("edx: 0x%x\n", creg.edx );
+    printf("ebx: 0x%x\n", creg.ebx );
+    printf("esp: 0x%x\n", creg.esp );
+    printf("ebp: 0x%x\n", creg.ebp );
+    printf("esi: 0x%x\n", creg.esi );
+    printf("edi: 0x%x\n", creg.edi );
+    printf("eflags: 0x%x\n", creg.eflags );
+    printf("interrupt code: 0x%x\n", creg.interrupt_code );
+    printf("error code: 0x%x\n", creg.error_code );
 }
 
 void irq_handle( cpu_register_t creg ) {

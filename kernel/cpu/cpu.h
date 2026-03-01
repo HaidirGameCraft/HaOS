@@ -23,6 +23,23 @@
 #define GDT_FLAGS_SIZEFLAGS     (1 << 2)
 #define GDT_FLAGS_LONGMODE      (1 << 1)
 
+/**
+ * P - Present
+ * DPL - Descriptor Privilage Level from Ring 0 -> Ring 3
+ * D - Descriptor
+ * E - Executable
+ * DC - Direction / Conforming Bit
+ * RW - Read/Write
+ * A - Access
+ */
+#define GDT_ACCESS(P, DPL, D, E, DC, RW, A) ((P << 7) | ((DPL) << 5) | (D << 4) | (E << 3) | (DC << 2) | (RW << 1) | (A << 0))
+/**
+ * G - Granularity
+ * S - Size of Descriptor ( 0 = 16 bits descriptor, 1 = 32 bits descriptor )
+ * L - Long Mode ( 0 = 16/32 bits, 1 = 64 bits )
+ */
+#define GDT_FLAGS(G, S, L) ((G << 3) | (S << 2) | (L << 1) | 0 )
+
 typedef struct {
     word low_limit;
     word low_base;
@@ -94,6 +111,11 @@ typedef struct {
     dword interrupt_code;
     dword error_code;
 } cpu_register_t;
+
+/*
+    LDT - Local Descriptor Table ( for Task/Thread )
+*/
+typedef gdt_entry_t ldt_entry_t;
 
 /*
     IDT - Interrupt Descriptor Table ( for Interrupt )

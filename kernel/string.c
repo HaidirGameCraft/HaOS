@@ -93,3 +93,30 @@ void    hexstr( dword value, char* buffer ) {
     buffer[index] = 0;
     strrev( buffer );
 }
+
+int     strint( char* text ) {
+    int len = strsize( text );
+    int val = 0;
+    int index = 0;
+    byte sign = 0;
+    if( text[index] == '-' )
+    {
+        sign = 1;
+        index++;
+    }
+
+    while( index < len )
+    {
+        char v = text[index];
+        val = val * 10;
+        val = val + (v - '0');
+        index++;
+    }
+
+    if( sign == 1 ) val = val * -1;
+    return val;
+}
+
+dword   strhex( char* text ) {
+    // TODO
+}

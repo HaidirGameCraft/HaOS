@@ -13,3 +13,5 @@ int     strncmp( const char* c1, const char* c2, size_t size );
 void    strrev( char* buffer );
 void    intstr( int value, char* buffer );
 void    hexstr( dword value, char* buffer );
+int     strint( char* text );
+dword   strhex( char* text );

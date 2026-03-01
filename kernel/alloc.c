@@ -38,15 +38,15 @@ void* new_alloc( dword size ) {
             {
                 current->available = 0;
                 return (void*)( (dword) current + sizeof( alloc_block_t ) ); // returning the available block without any change
-            } else if ( current->size < size + sizeof( alloc_block_t ))
+            } else if ( current->size > size + sizeof( alloc_block_t ))
             {
                 current->available = 0;
-                dword remain_size = ( size + sizeof( alloc_block_t ) ) - current->size;
+                dword remain_size = current->size - ( size + sizeof( alloc_block_t ) );
                 if( remain_size < sizeof( alloc_block_t ) )
                     return (void*)( (dword) current + sizeof( alloc_block_t ) );
                 
                 // Split the block ( if remains ) with new block
-                alloc_block_t* new_block = (alloc_block_t*)((dword) current + current->size );
+                alloc_block_t* new_block = (alloc_block_t*)((dword) current + size + sizeof( alloc_block_t ) );
                 new_block->size = remain_size;
                 new_block->next = current->next;
                 current->next = new_block;

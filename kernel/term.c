@@ -1,7 +1,11 @@
 #include "term.h"
 #include <colorcode.h>
 #include <io.h>
+#include <string.h>
 #include <driver/video_driver.h>
+#include <alloc.h>
+
+#include <config.h>
 
 struct term_text_cursor
 {
@@ -15,11 +19,15 @@ dword text_color = 0;
 dword background_color = 0;
 int max_char_width = 0;
 int max_char_height = 0;
+char* logs = NULL;
+int index_logs = 0;
 
 struct term_text_cursor ttext_cursor;
 struct term_text_cursor prev_ttext_cursor;
 
 void term_drawChar( char c, dword color );
+void term_scrollup();
+void term_exec( char* cmd );
 
 void term_init() {
     ttext_cursor.x = 0;
@@ -29,24 +37,57 @@ void term_init() {
     prev_ttext_cursor = ttext_cursor;
     text_color = R8G8B8(0xFF, 0xFF, 0xFF);
     background_color = R8G8B8(0x00, 0x00, 0x00);
+
+    word width, height;
+    video_driver_getsize(&width, &height);
+    max_char_width = (int)(width / 8);
+    max_char_height = (int)(height / 16);
 }
 
 void term_run() {
     word width, height;
     video_driver_getsize(&width, &height);
+    logs = (char*) new_alloc( 1024 );
+    index_logs = 0;
 
-    max_char_width = (int)(width / 8);
-    max_char_height = (int)(height / 16);
-
+    term_drawChar('>', text_color);
     while( true )
     {
         char key = getchar();
         if( key == 0 ) continue;
         else if( key == 0x08 )
         {
+            if( index_logs <= 0 )
+                continue;
+            char _c = logs[index_logs - 1];
+            logs[index_logs - 1] = 0;
+            index_logs--;
+            int index = ttext_cursor.x + ttext_cursor.y * max_char_width;
+            index--;
 
-        } else {
-            term_drawChar( key, text_color );
+            ttext_cursor.x = (dword)(index % max_char_width );
+            ttext_cursor.y = (dword)(index / max_char_width );
+            video_driver_drawChar( _c, ttext_cursor.x * 8, ttext_cursor.y * 16, R8G8B8(0, 0, 0) );
+        }
+        else if ( key == '\n' )
+        {
+            
+            ttext_cursor.x = 0;
+            ttext_cursor.y++;
+            term_scrollup();
+            
+            term_exec( logs );
+            index_logs = 0;
+            logs[ index_logs ] = 0;
+
+            term_drawChar('>', text_color);
+        } 
+        else {
+            if( key >= 0x20 && key < 127) {
+                logs[ index_logs++ ] = key;
+                logs[ index_logs ] = 0;
+                term_drawChar( key, text_color );
+            }
         }
         
     }
@@ -57,6 +98,7 @@ void term_drawChar( char c, dword color ) {
     {
         ttext_cursor.x = 0;
         ttext_cursor.y++;
+        term_scrollup();
         return;
     }
 
@@ -66,4 +108,79 @@ void term_drawChar( char c, dword color ) {
     index++;
     ttext_cursor.x = (dword)(index % max_char_width );
     ttext_cursor.y = (dword)(index / max_char_width );
+    term_scrollup();
+}
+
+void term_putc(char c) {
+    term_drawChar( c , text_color );
+}
+
+void term_scrollup() {
+
+    // skip if the y cursor is lower than max of height
+    if( ttext_cursor.y < max_char_height )
+        return;
+
+    dword framebuffer = video_driver_getframebuffer();
+    word width, height;
+    video_driver_getsize(&width, &height);
+
+    for( int i = 0; i < max_char_height - 1; i++ )
+    {
+        // source address = framebuffer + ( width screen * height of char * bytes per pixel ) * i
+        dword src_addr = framebuffer + ( width * 16 * 3 ) * (i + 1);
+        // destination address
+        dword dest_addr = framebuffer + ( width * 16 * 3 ) * i;
+
+        // copy src pixel into dest pixel
+        memcopy( (void*) dest_addr, (void*) src_addr, width * 16 * 3 );
+    }
+
+    // clear pixels at last line
+    memzero( (void*)( framebuffer + (width * 16 * 3) * (max_char_height - 1)), width * 16 * 3 );
+    ttext_cursor.y--;
+}
+
+void term_exec( char* cmd ) {
+    // split the cmd into args
+    char* args[ MAX_ARGS ];
+    int index = 0;
+    int len = strsize( cmd );
+    int argc = 0;
+    char* start_addr = cmd;
+    while( index <= len )
+    {
+        if( cmd[index] == ' ' || cmd[index] == 0 )
+        {
+            args[argc] = start_addr;
+            cmd[index] = 0;
+            index++;
+            start_addr = &cmd[index];
+            argc++;
+            continue;
+        }
+        index++;
+    }
+
+    if( argc > 0 )
+    {
+        if( strcmp(args[0], "CLEAR") == 0 ) {
+            video_driver_clearScreen( R8G8B8(0, 0, 0 ) );
+            ttext_cursor.x = 0;
+            ttext_cursor.y = 0;
+        }
+        else if ( strcmp(args[0], "SETTEXTCOLOR") == 0 )
+        {
+            if( argc != 4 )
+            {
+                printf("Text Color should be have r, g, and b value\n");
+                return;
+            }
+            byte r = (byte) strint( args[1] );
+            byte g = (byte) strint( args[2] );
+            byte b = (byte) strint( args[3] );
+
+            text_color = R8G8B8(r, g, b);
+        }
+    }
 }

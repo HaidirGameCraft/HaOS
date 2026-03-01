@@ -31,8 +31,10 @@ void page_init() {
     }
     page_directory[0] = ((dword) first_page_table) | (1 << 0) | (1 << 1);
     page_directory[1023] = ((dword) frame_page_table) | (1 << 0) | ( 1 << 1 );
+    // print("Create and Mapped kernel into Page Successfull!\n");
 
     page_enable((dword) page_directory);
+    // print("Paging has been enable!\n");
 }
 
 dword page_getframe() {
