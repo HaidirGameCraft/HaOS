@@ -4,6 +4,7 @@
 #include <string.h>
 #include <driver/video_driver.h>
 #include <alloc.h>
+#include <page.h>
 
 #include <config.h>
 
@@ -181,6 +182,14 @@ void term_exec( char* cmd ) {
             byte b = (byte) strint( args[3] );
 
             text_color = R8G8B8(r, g, b);
+        } else if ( strcmp("MEMSIZE", args[0]) == 0 )
+        {
+            dword mem_use = page_getSizeMemoryUse();
+            if( argc > 1 && strcmp(args[1], "-KB") == 0 ) {
+                printf("Memory Size Use: %i kb \n", (dword)(mem_use / 1024) );
+            } else {
+                printf("Memory Size Use: %i bytes \n", mem_use);
+            }
         }
     }
 }

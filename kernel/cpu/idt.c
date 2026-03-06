@@ -108,18 +108,18 @@ void isr_handle( cpu_register_t creg ) {
     serial_printf("interrupt code: 0x%x\n", creg.interrupt_code );
     serial_printf("error code: 0x%x\n", creg.error_code );
 
-    printf("Interrupt: %s\n", interrupt_descriptor_message[creg.interrupt_code] );
-    printf("eax: 0x%x\n", creg.eax );
-    printf("ecx: 0x%x\n", creg.ecx );
-    printf("edx: 0x%x\n", creg.edx );
-    printf("ebx: 0x%x\n", creg.ebx );
-    printf("esp: 0x%x\n", creg.esp );
-    printf("ebp: 0x%x\n", creg.ebp );
-    printf("esi: 0x%x\n", creg.esi );
-    printf("edi: 0x%x\n", creg.edi );
-    printf("eflags: 0x%x\n", creg.eflags );
-    printf("interrupt code: 0x%x\n", creg.interrupt_code );
-    printf("error code: 0x%x\n", creg.error_code );
+    // printf("Interrupt: %s\n", interrupt_descriptor_message[creg.interrupt_code] );
+    // printf("eax: 0x%x\n", creg.eax );
+    // printf("ecx: 0x%x\n", creg.ecx );
+    // printf("edx: 0x%x\n", creg.edx );
+    // printf("ebx: 0x%x\n", creg.ebx );
+    // printf("esp: 0x%x\n", creg.esp );
+    // printf("ebp: 0x%x\n", creg.ebp );
+    // printf("esi: 0x%x\n", creg.esi );
+    // printf("edi: 0x%x\n", creg.edi );
+    // printf("eflags: 0x%x\n", creg.eflags );
+    // printf("interrupt code: 0x%x\n", creg.interrupt_code );
+    // printf("error code: 0x%x\n", creg.error_code );
 }
 
 void irq_handle( cpu_register_t creg ) {

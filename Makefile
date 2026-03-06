@@ -24,8 +24,7 @@ KERNEL_C_BUILD=$(patsubst ./%.c, ${BUILD_DIR}/%.c.o, ${KERNEL_C_FILES})
 
 all: kernel_build \
 	 create_boot \
-	 create_image \
-	 run
+	 create_image
 
 test:
 	echo $(KERNEL_ASM_FILES)
@@ -36,6 +35,9 @@ kernel_build: mkdir ${KERNEL_BUILD_DIRS} ${KERNEL_ASM_BUILD} ${KERNEL_C_BUILD}
 		-o ${BUILD_DIR}/kernel/kernel.bin \
 		${KERNEL_ASM_BUILD} ${KERNEL_C_BUILD} \
 		--oformat binary
+	ld -g -m elf_i386 -T ${KERNEL_DIR}/kernel.linker.ld \
+		-o ${BUILD_DIR}/kernel/kernel.elf \
+		${KERNEL_ASM_BUILD} ${KERNEL_C_BUILD}
 	
 
 ${BUILD_DIR}/kernel/%.c.o: ${KERNEL_DIR}/%.c
@@ -70,6 +72,12 @@ clean:
 
 run:
 	qemu-system-i386 -hda ${FILE_IMAGE} -serial stdio
+
+run_debug:
+	qemu-system-i386 -hda $(FILE_IMAGE) -serial stdio -S -s
+
+run_gdb:
+	gdb build/kernel/kernel.elf
 
 
 

@@ -70,3 +70,5 @@ typedef struct {
 
 extern VesaBlock_Info_t vesaInfo;
 extern VesaMode_Info_t vesaModeInfo;
+extern void __BOOTSTAGE_START();
+extern void __BOOTSTAGE_END();

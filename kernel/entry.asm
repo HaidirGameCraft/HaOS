@@ -21,5 +21,7 @@ __start:
     jmp .halt
 
 section .bss
+align 4
 __stack_top: resb 8196
 __stack_bottom:
+align 4

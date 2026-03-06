@@ -44,22 +44,23 @@ dword strncmp( const char* c1, const char* c2, dword size ) {
     return 0;
 }
 
-void  intstr( char* buffer, int value ) {
-    byte sign = value > 0 ? 1 : 0;
+void    intstr( char* buffer, int value ) {
     int index = 0;
-    int temp = value;
-    if( temp < 0 )
-        temp = -temp;
-    
-    while( temp > 0 )
+    byte sign = ( value >= 0 ) ? 1 : 0;
+    if( sign == 0 ) value = value * -1;
+    if( value != 0 )
     {
-        char _c = (temp % 10) + '0';
-        temp = temp / 10;
-        buffer[index] = _c;
-        index++;
+        while( value > 0 )
+        {
+            char _c = ( value % 10 ) + '0';
+            buffer[index++] = _c;
+            value = value / 10;
+        }
+    } else {
+        buffer[index++] = '0';
     }
-
-    if( !sign ) buffer[index++] = '-';
+    
+    if( sign == 0 ) buffer[index++] = '-';
     buffer[index] = 0;
     revstr( buffer );
 }

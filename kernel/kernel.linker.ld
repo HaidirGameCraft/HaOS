@@ -1,8 +1,9 @@
+ENTRY(__start)
 SECTIONS
 {
-    . = 1M;
+    . = 0xC0100000;
     __kernel_start = .;
-    .header : ALIGN(0x1000) {
+    .header : {
         *(.header)
     }
 

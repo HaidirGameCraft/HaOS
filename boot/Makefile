@@ -26,6 +26,7 @@ build_bootloader: mkdir
 
 build_bootstage: ${BOOTSTAGE_C_OBJ} ${BOOTSTAGE_ASM_OBJ}
 	ld -m elf_i386 -T bootstage.linker.ld -o ${BUILD_BOOTSTAGE_DIR}/bootstage.bin ${BOOTSTAGE_ASM_OBJ} ${BOOTSTAGE_C_OBJ} --oformat=binary
+	ld -g -m elf_i386 -T bootstage.linker.ld -o ${BUILD_BOOTSTAGE_DIR}/bootstage.elf ${BOOTSTAGE_ASM_OBJ} ${BOOTSTAGE_C_OBJ}
 
 ${BUILD_BOOTSTAGE_DIR}/%.c.o: ./stage/%.c
 	gcc ${CCFLAGS} -I"./stage/" -o $@ -c $<

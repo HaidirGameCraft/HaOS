@@ -22,7 +22,7 @@ void gdt_init() {
     gdt_desc.base = (dword) gdt_entries;
     gdt_desc.limit = sizeof( gdt_entry_t ) * 6 - 1;
     gdt_install( (dword) &gdt_desc );
-    print("Global Descriptor Table Installed!\n");
+    // print("Global Descriptor Table Installed!\n");
 }
 
 void gdt_set_entry( int index, dword limit, dword base, byte access, byte flags )
