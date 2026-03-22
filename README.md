@@ -9,6 +9,9 @@ This is my hobby project create since I live in college.
 ## Operating System
 What is Operating System. Operating System is the system that operate on machine like computer or laptop to run the program. The exists Operating System, OS is Windows, MacOS, Linux and more.
 
+## Overview 
+![overview-haos](images/overview-os.png)
+
 ## Requirement
 - You must installing x86_64-elf or configure manually on Makefile:
 ```sh
