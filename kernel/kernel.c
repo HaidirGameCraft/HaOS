@@ -26,14 +26,11 @@ void kernel_main( bootstage_info_t* bootstage_info )
     gdt_init();
     idt_init();
     init_alloc();
-    serial_printf("Hello, World\n");
-    
-    
     fat_init();
 
-    // Trying ELF
-    elf64_load("main.elf");
-    
+    // Remove it if you want
+    video_driver_clearScreen( R8G8B8(0, 0, 0) );
+    printf("HaOS Created By Haidir\n\n\n");
     term_run();
     return;
 }

@@ -8,6 +8,7 @@
 #include <serial.h>
 
 #include <config.h>
+#include <elf.h>
 
 struct term_text_cursor
 {
@@ -178,10 +179,27 @@ void term_exec( char* cmd ) {
 
     if( argc > 0 )
     {
-        if( strcmp(args[0], "CLEAR") == 0 ) {
+        if( strcmp( args[0], "HELP" ) == 0 ) {
+            printf("Tools/Command HaOS:\n");
+            printf("HELP -  displaying tools/command\n");
+            printf("CLEAR - clear text/screen of terminal\n");
+            printf("EXEC <filename> - execute ELF file target\n");
+            printf("SETTEXTCOLOR <r8> <g8> <b8> - change text color\n");
+            printf("MEMSIZE -[K]B - show the size of memory use\n");
+        }
+        else if( strcmp(args[0], "CLEAR") == 0 ) {
             video_driver_clearScreen( R8G8B8(0, 0, 0 ) );
             ttext_cursor.x = 0;
             ttext_cursor.y = 0;
+        }
+        else if ( strcmp(args[0], "EXEC") == 0 ) {
+            if( argc != 2 )
+            {
+                printf("EXEC <filename>");
+                return;
+            }
+
+            elf64_load( args[1] );
         }
         else if ( strcmp(args[0], "SETTEXTCOLOR") == 0 )
         {
@@ -204,6 +222,8 @@ void term_exec( char* cmd ) {
             } else {
                 printf("Memory Size Use: %i bytes \n", mem_use);
             }
+        } else {
+            printf("%s: is not an COMMAND\n", args[0] );
         }
     }
 }

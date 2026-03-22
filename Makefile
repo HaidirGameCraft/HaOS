@@ -1,8 +1,8 @@
 
 
-GCC_COMPILER=/home/haidir/opt/cross/bin/x86_64-elf-gcc
-LD_COMPILER=/home/haidir/opt/cross/bin/x86_64-elf-ld
-GNU_AS_COMPILER=/home/haidir/opt/cross/bin/x86_64-elf-as
+GCC_COMPILER=${HOME}/opt/cross/bin/x86_64-elf-gcc
+LD_COMPILER=${HOME}/opt/cross/bin/x86_64-elf-ld
+GNU_AS_COMPILER=${HOME}/opt/cross/bin/x86_64-elf-as
 ASM_COMPILER=nasm
 CC_FLAGS=-m64 -Wall -Wextra -ffreestanding -fno-builtin -fno-stack-protector -nostdlib -fno-pie
 NASM_FLAGS=-f elf64

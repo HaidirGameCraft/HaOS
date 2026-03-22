@@ -12,6 +12,7 @@ void page_init();
 qword* page_create();
 void page_setPMLT4( qword pmlt4 );
 void page_setPMLT4Default();
+void page_installMainPage();
 
 qword page_alloc4K();
 qword page_map( qword length );

@@ -109,8 +109,8 @@ typedef struct {
     qword rbx;
     qword rsp;
     qword rbp;
-    qword rsi;
     qword rdi;
+    qword rsi;
 
     qword r8;
     qword r9;

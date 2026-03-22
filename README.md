@@ -9,6 +9,15 @@ This is my hobby project create since I live in college.
 ## Operating System
 What is Operating System. Operating System is the system that operate on machine like computer or laptop to run the program. The exists Operating System, OS is Windows, MacOS, Linux and more.
 
+## Requirement
+- You must installing x86_64-elf or configure manually on Makefile:
+```sh
+GCC_COMPILER=/path/to/gcc
+LD_COMPILER=/path/to/ld
+GNU_AS_COMPILER=/path/to/as
+ASM_COMPILER=/path/to/nasm
+```
+
 ## Compile and Run
 ```sh
 # Compile

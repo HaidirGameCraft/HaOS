@@ -50,11 +50,10 @@ qword* page_create() {
     qword* __pdt = ( qword* ) page_alloc4K();
     qword* __pt = ( qword* ) page_alloc4K();
 
-    page_mapframe((qword) __pt );
+    //page_mapframe((qword) __pt );
     __pmlt4[0] = ((qword) __pdpt) | 1 << 1 | 1 << 0;
-    __pdpt[0] = ((qword) __pdt) | 1 << 1 | ! 1 << 0;
+    __pdpt[0] = ((qword) __pdt) | 1 << 1 | 1 << 0;
     __pdt[0] = ((qword) __pt) | 1 << 1 | 1 << 0;
-
     __pt[0] = PAGE_BITMAP_ADDRESS | 1 << 1 | 1 << 0;
 
     // we need to set main pmlt4 into __pmlt4 including ( framebuffer, frame and  kernel)
@@ -155,6 +154,10 @@ void  page_umapframe() {
     __asm__ volatile("invlpg (%0)" :: "r"( PAGE_ADDRESS( 0, 0, 511, 0 )));
 }
 
+void page_installMainPage() {
+    page_setPMLT4Default();
+    page_enable( (qword) pmlt4 );
+}
 qword page_alloc4K() {
     // TODO
 
