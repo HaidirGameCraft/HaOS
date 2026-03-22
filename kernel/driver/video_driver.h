@@ -10,4 +10,4 @@ void    video_driver_putPixel( int x, int y, dword color );
 void    video_driver_clearScreen( dword color );
 void    video_driver_drawChar( char c, dword x, dword y, dword color );
 void    video_driver_getsize( word* width, word* height );
-dword   video_driver_getframebuffer();
+qword   video_driver_getframebuffer();

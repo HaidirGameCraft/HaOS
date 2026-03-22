@@ -29,4 +29,8 @@ void pic_remapped() {
     // Unmask both the PIC
     port_outb( PIC_MASTER | PIC_DATA, 0 );
     port_outb( PIC_SLAVE | PIC_DATA, 0 );
+
+    // port_outb( PIC_MASTER | PIC_DATA, 0xFF );
+    // port_outb( PIC_SLAVE | PIC_DATA, 0xFF );
+
 }

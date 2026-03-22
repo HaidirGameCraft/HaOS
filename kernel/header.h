@@ -3,8 +3,8 @@
 #include <type.h>
 
 typedef struct {
-    dword identifier;
-    dword flags;
+    qword identifier;
+    qword flags;
 
     // For Video Mode Information
     word width;

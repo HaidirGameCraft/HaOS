@@ -1,75 +1,129 @@
 
 
+%macro PUSHX64  0
+    push r15
+    push r14
+    push r13
+    push r12
+    push r11
+    push r10
+    push r9
+    push r8
+
+    push rsi 
+    push rdi
+    push rbp
+    push rsp
+    push rbx
+    push rdx
+    push rcx
+    push rax
+
+    mov rax, cr0
+    push rax
+
+    mov rax, cr2
+    push rax
+
+    mov rax, cr3
+    push rax
+
+    mov rax, cr4
+    push rax
+
+%endmacro
+
+%macro POPX64   0
+    add rsp, 32
+
+    pop rax
+    pop rcx
+    pop rdx
+    pop rbx
+    pop rsp
+    pop rbp
+    pop rdi
+    pop rsi 
+
+    pop r8
+    pop r9
+    pop r10
+    pop r11
+    pop r12
+    pop r13
+    pop r14
+    pop r15
+%endmacro
+
+
+
 section  .text
 global idt_install
 idt_install:
-    cli
-    mov eax, dword [ esp + 4 ]
-    lidt [eax]
+    mov rax, rdi
+    lidt [rax]
     ret
 
 isr_stub:
-    pushf   ; Push the Eflags
-    pusha   ; Push all register
+    PUSHX64   ; Push all register
 
+    mov rdi, rsp
     [extern isr_handle]
     call isr_handle
 
-    popa    ; Pop all register
-    popf    ; Pop the Eflags
-    add esp, 8
+    POPX64    ; Pop all register
+
+    add rsp, 16
     sti
-    iret        ; Interrupt return
+    iretq        ; Interrupt return
 
 isr_stub_halt:
-    pushf   ; Push the Eflags
-    pusha   ; Push all register
+    PUSHX64   ; Push all register
 
+    mov rdi, rsp
     [extern isr_handle]
     call isr_handle
 
-    popa    ; Pop all register
-    popf    ; Pop the Eflags
-    add esp, 8
+    POPX64    ; Pop all register
+    add rsp, 16
 .halt:
     hlt
     jmp .halt
     sti
-    iret        ; Interrupt return
+    iretq        ; Interrupt return
 
 irq_stub:
-    pushf
-    pusha
+    PUSHX64
 
+    mov rdi, rsp
     [extern irq_handle]
     call irq_handle
 
-    popa
-    popf
-    add esp, 8
+    POPX64
+    add rsp, 16
     sti
-    iret
+    iretq
 
 %macro isr_error 1
 isr_%1:
     cli
-    push dword %1
+    push qword %1
     jmp isr_stub_halt
 %endmacro
 
 %macro isr_no_error 1
 isr_%1:
     cli
-    push dword 0
-    push dword %1
+    push qword 0
+    push qword %1
     jmp isr_stub
 %endmacro
 
 %macro irq__    2
 irq_%1:
     cli
-    push dword %1
-    push dword %2
+    push qword %1
+    push qword %2
     jmp irq_stub
 %endmacro
 
@@ -127,53 +181,53 @@ irq__  15, 47
 section .data
 global interrupt_x86
 interrupt_x86:
-    dd isr_0
-    dd isr_1
-    dd isr_2
-    dd isr_3
-    dd isr_4
-    dd isr_5
-    dd isr_6
-    dd isr_7
-    dd isr_8
-    dd isr_9
-    dd isr_10
-    dd isr_11
-    dd isr_12
-    dd isr_13
-    dd isr_14
-    dd isr_15
-    dd isr_16
-    dd isr_17
-    dd isr_18
-    dd isr_19
-    dd isr_20
-    dd isr_21
-    dd isr_22
-    dd isr_23
-    dd isr_24
-    dd isr_25
-    dd isr_26
-    dd isr_27
-    dd isr_28
-    dd isr_29
-    dd isr_30
-    dd isr_31
+    dq isr_0
+    dq isr_1
+    dq isr_2
+    dq isr_3
+    dq isr_4
+    dq isr_5
+    dq isr_6
+    dq isr_7
+    dq isr_8
+    dq isr_9
+    dq isr_10
+    dq isr_11
+    dq isr_12
+    dq isr_13
+    dq isr_14
+    dq isr_15
+    dq isr_16
+    dq isr_17
+    dq isr_18
+    dq isr_19
+    dq isr_20
+    dq isr_21
+    dq isr_22
+    dq isr_23
+    dq isr_24
+    dq isr_25
+    dq isr_26
+    dq isr_27
+    dq isr_28
+    dq isr_29
+    dq isr_30
+    dq isr_31
 
     ; IRQ Interrupt Request Queue
-    dd irq_0
-    dd irq_1
-    dd irq_2
-    dd irq_3
-    dd irq_4
-    dd irq_5
-    dd irq_6
-    dd irq_7
-    dd irq_8
-    dd irq_9
-    dd irq_10
-    dd irq_11
-    dd irq_12
-    dd irq_13
-    dd irq_14
-    dd irq_15
+    dq irq_0
+    dq irq_1
+    dq irq_2
+    dq irq_3
+    dq irq_4
+    dq irq_5
+    dq irq_6
+    dq irq_7
+    dq irq_8
+    dq irq_9
+    dq irq_10
+    dq irq_11
+    dq irq_12
+    dq irq_13
+    dq irq_14
+    dq irq_15

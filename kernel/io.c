@@ -10,12 +10,12 @@ void print( const char* text )
         term_putc( text[index++] );
 }
 
-void printf( const char* format, ... ) {
-    dword* ebp = (dword*) &format;
-    ebp++; // Skipping the first argument
-
+void printf_impl( qword* rsp ) {
+    const char* format = (const char*)( rsp[0] );
+    qword* ebp = ( qword* )( &rsp[1] );
+    
     int index = 0;
-    char tmp_num[20];
+    char tmp_num[32];
     while( format[ index ] != 0 )
     {
         if( format[ index ] == '%' )
@@ -28,7 +28,7 @@ void printf( const char* format, ... ) {
                 print( tmp_num );
             } else if ( format[index] == 'x' )
             {
-                hexstr( (dword) *ebp, tmp_num );
+                hexstr( (qword) *ebp, tmp_num );
                 ebp++;
                 print( tmp_num );
             } else if ( format[index] == 's' )

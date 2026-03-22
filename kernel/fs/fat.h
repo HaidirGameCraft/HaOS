@@ -61,6 +61,24 @@ typedef struct {
     dword size;
 } __attribute__((packed)) fat_filedirectory_t;
 
+typedef struct {
+    // The start of cluster
+    dword current_cluster;
+    // Next cluster should be
+    dword next_cluster;
+
+    // The pointer
+    dword cluster;
+    word  offset;
+} __attribute__((packed)) fat_file_ptr;
+
 void fat_init();
 fat_filedirectory_t fat_findFile( const char* filename );
+fat_file_ptr fat_fileOpen( const char* filename );
+dword fat_sizeSector();
+
+void fat_seek( fat_file_ptr* fptr, qword pos );
+void fat_read( fat_file_ptr* fptr, char* buffer, size_t size );
+void fat_readSector( fat_file_ptr* fptr, char* buffer );
 void fat_readFile( const fat_filedirectory_t* file, char* buffer );
+void fat_readFile_map( const fat_filedirectory_t* file, char* buffer, dword virt );

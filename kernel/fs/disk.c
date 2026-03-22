@@ -21,8 +21,11 @@ void ata_read_disk( dword lba, dword offset, void* buffer, dword size ) {
         while( port_inb( ATA_PRIMARY_BUS | ATAPIO_STATUS ) & 0x80 );
 
         
-        for( int i = 0; i < 256; i++ )
-        ((word*) tmp_buffer)[i] = port_inw( ATA_PRIMARY_BUS | ATAPIO_DATA );
+        word* __tmpbuf = (word*) &tmp_buffer;
+        for( int i = 0; i < 256; i++ ) {
+            __tmpbuf[0] = port_inw( ATA_PRIMARY_BUS | ATAPIO_DATA );
+            __tmpbuf++; // increase tmpbuf by 2
+        }
         
         for( int i = offset; i < 512; i++ ) {
             *__buf = ((byte*) tmp_buffer)[i];

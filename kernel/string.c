@@ -1,12 +1,25 @@
 #include <string.h>
+#include <serial.h>
 
-void memzero( void* buffer, size_t size ) {
-    for( int i = 0; i < size; i++ )
-        ((byte*) buffer)[i] = 0;
-}
+// void memzero( void* buffer, size_t size ) {
+//     for( qword i = 0; i < size; i++ )
+//     {
+//     }
+// }
 void memcopy( void* dest, void* src, size_t size ) {
-    for( int i = 0; i < size; i++ )
-        ((byte*) dest)[i] = ((byte*) src)[i];
+    byte* __dest = ( byte* ) dest;
+    byte* __src = ( byte* ) src;
+
+    
+    for( qword i = 0; i < size; i++ ) {
+        __asm__ volatile("movq %0, %%rsi" :: "r"(__src) );
+        __asm__ volatile("movq %0, %%rdi" :: "r"(__dest) );
+        __asm__ volatile("movb (%rsi), %al");
+        __asm__ volatile("movb %al, (%rdi)");
+        __asm__ volatile("incq %rsi\n\t incq %rdi");
+        __asm__ volatile("mov %%rsi, %0" : "=r"(__src) );
+        __asm__ volatile("mov %%rdi, %0" : "=r"(__dest) );
+    }
 }
 
 size_t strsize( char* buffer ) {
@@ -76,19 +89,25 @@ void    intstr( int value, char* buffer ) {
     buffer[index] = 0;
     strrev( buffer );
 }
-void    hexstr( dword value, char* buffer ) {
+void    hexstr( qword value, char* buffer ) {
     int index = 0;
-    const char* hexw = "0123456789ABCDEF";
-    for( int i = 0; i < 8; i++ )
+    static const char* hexw = "0123456789ABCDEF";
+    for( int i = 0; i < 16; i++ )
     {
+
         if( value != 0 )
         {
-            char _c = hexw[ (int)(value & 0x0F) ];
+            char _c = hexw[ (qword)(value & 0x0F) ];
             value = value >> 4;
             buffer[index++] = _c;
         } else {
-            buffer[index++] = '0';
+            // buffer[index++] = '0';
         }
+    }
+    if( index == 0 )
+    {
+        buffer[index++] = '0';
+        buffer[index++] = '0';
     }
     buffer[index] = 0;
     strrev( buffer );

@@ -9,6 +9,8 @@
 #include <io.h>
 #include <colorcode.h>
 #include <term.h>
+#include <fs/fat.h>
+#include <elf.h>
 
 void kernel_main( bootstage_info_t* bootstage_info )
 {
@@ -17,12 +19,21 @@ void kernel_main( bootstage_info_t* bootstage_info )
     page_init();
     video_driver_mapped();
     
-    term_init();
     video_driver_clearScreen( R8G8B8(0, 0, 0) );
+    
+    term_init();
+    
     gdt_init();
     idt_init();
     init_alloc();
-    // printf("Hai %x\n", 0xAB);
+    serial_printf("Hello, World\n");
+    
+    
+    fat_init();
 
+    // Trying ELF
+    elf64_load("main.elf");
+    
     term_run();
+    return;
 }

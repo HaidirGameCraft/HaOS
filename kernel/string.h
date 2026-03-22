@@ -2,7 +2,7 @@
 
 #include <type.h>
 
-void memzero( void* buffer, size_t size );
+extern void memzero( void* buffer, size_t size );
 void memcopy( void* dest, void* src, size_t size );
 
 size_t strsize( char* buffer );
@@ -12,6 +12,6 @@ int     strcmp( const char* c1, const char* c2 );
 int     strncmp( const char* c1, const char* c2, size_t size );
 void    strrev( char* buffer );
 void    intstr( int value, char* buffer );
-void    hexstr( dword value, char* buffer );
+void    hexstr( qword value, char* buffer );
 int     strint( char* text );
 dword   strhex( char* text );

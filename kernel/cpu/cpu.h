@@ -48,74 +48,93 @@ typedef struct {
     byte high_limit: 4;
     byte flags: 4;
     byte high_base;
-} __attribute__((packed)) gdt_entry_t;
+} __attribute__((packed)) gdt32_entry_t;
+
+typedef struct {
+    word low_limit;
+    word low_base;
+    byte mid_base;
+    byte access;
+    byte high_limit: 4;
+    byte flags: 4;
+    byte high_base;
+    dword offset_base3;
+    dword reserved;
+} __attribute__((packed)) gdt64_entry_t;
 
 typedef struct {
     word limit;
-    dword base;
+    addr_t base;
 } __attribute__((packed)) gdt_descriptor_t;
 
 void gdt_init();
-extern void gdt_install( dword descriptor );
-void gdt_set_entry( int index, dword limit, dword base, byte access, byte flags );
+extern void gdt_install( qword descriptor );
+void gdt_set_entry( int index, dword limit, qword base, byte access, byte flags );
+void gdt_set_tss_entry( dword limit, qword base, byte access, byte flags );
 
 /*
     TSS = Task Stage Segment ( The information about Task )
 */
 typedef struct {
-    dword link;     // Previous task that containing segment selector for tss
-    dword esp0;     // Stack Pointer for Privilege Ring 0 ( Kernel )
-    dword ss0;      // Segment Selector for Privilege Ring 0 ( Kernel )
-    dword esp1;     // Stack Pointer for Privilege Ring 1/2 ( Device )
-    dword ss1;      // Segment Selector for Privilege Ring 1/2 ( Device )
-    dword esp2;     // Stack Pointer for Privilege Ring 3 ( User )
-    dword ss2;      // Segment Selector for Privilege Ring 3 ( User )
-
-    dword cr3;      // Page Directory Address
-    dword eip;      // Program Counter
-    dword eflags;   // Flags
-    dword eax;
-    dword ecx;
-    dword edx;
-    dword ebx;
-    dword esp;
-    dword ebp;
-    dword esi;
-    dword edi;
-
-    dword es;       // Extra Segment
-    dword cs;       // Code Segment
-    dword ss;       // Stack Segment
-    dword ds;       // Data Segment
-    dword fs;       // General Purpose Segment
-    dword gs;       // General Purpose Segment
-    dword ldtr;
-    dword iobp;     // IO Map Base Address
-    dword ssp;      // Shadow Stack Pointer
+    dword reserved0;
+    qword rsp0;
+    qword rsp1;
+    qword rsp2;
+    qword reserved1;
+    qword ist1;
+    qword ist2;
+    qword ist3;
+    qword ist4;
+    qword ist5;
+    qword ist6;
+    qword ist7;
+    qword reserved2;
+    word reserved3;
+    word iopb;
 } __attribute__((packed)) task_state_segment_t;
 
 /*
     CPU Register List
 */
 typedef struct {
-    dword eax;
-    dword ecx;
-    dword edx;
-    dword ebx;
-    dword esp;
-    dword ebp;
-    dword esi;
-    dword edi;
 
-    dword eflags;
-    dword interrupt_code;
-    dword error_code;
+    qword cr4;
+    qword cr3;
+    qword cr2;
+    qword cr0;
+
+    qword rax;
+    qword rcx;
+    qword rdx;
+    qword rbx;
+    qword rsp;
+    qword rbp;
+    qword rsi;
+    qword rdi;
+
+    qword r8;
+    qword r9;
+    qword r10;
+    qword r11;
+    qword r12;
+    qword r13;
+    qword r14;
+    qword r15;
+
+    qword interrupt_code;
+    qword error_code;
+    
+    qword rip;
+    qword cs: 16;
+    qword reserved2: 48;
+    qword rflags;
+
 } cpu_register_t;
 
 /*
     LDT - Local Descriptor Table ( for Task/Thread )
 */
-typedef gdt_entry_t ldt_entry_t;
+typedef gdt32_entry_t ldt_entry_t;
 
 /*
     IDT - Interrupt Descriptor Table ( for Interrupt )
@@ -142,7 +161,9 @@ typedef gdt_entry_t ldt_entry_t;
 typedef struct {
     word low_offset;
     word code_sgement;
-    byte reserved;
+
+    // ist - Interrupt Stack Table
+    byte ist;
 
     /* Gate Type: The type of gate Interrupt Descriptor*/
     byte gate_type: 4;
@@ -152,12 +173,14 @@ typedef struct {
     byte dpl: 2;
     /* Present */
     byte p: 1;
-    word high_offset;
+    word mid_offset;
+    dword high_offset;
+    dword reserved0;
 } __attribute__((packed)) idt_entry_t;
 
 typedef gdt_descriptor_t idt_descriptor_t;
 
 void idt_init();
-extern void idt_install( dword descriptor );
-void idt_set_entry( int index, dword offset, word code_segment, byte attribute );
-void interrupt_register( int index, dword offset );
+extern void idt_install( qword descriptor );
+void idt_set_entry( int index, qword offset, word code_segment, byte attribute );
+void interrupt_register( int index, qword offset );

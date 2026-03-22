@@ -5,6 +5,7 @@
 #include <driver/video_driver.h>
 #include <alloc.h>
 #include <page.h>
+#include <serial.h>
 
 #include <config.h>
 
@@ -16,12 +17,12 @@ struct term_text_cursor
 };
 
 
-dword text_color = 0;
-dword background_color = 0;
-int max_char_width = 0;
-int max_char_height = 0;
-char* logs = NULL;
-int index_logs = 0;
+static dword text_color = 0;
+static dword background_color = 0;
+static dword max_char_width = 0;
+static dword max_char_height = 0;
+static char* logs = NULL;
+static dword index_logs = 0;
 
 struct term_text_cursor ttext_cursor;
 struct term_text_cursor prev_ttext_cursor;
@@ -48,11 +49,14 @@ void term_init() {
 void term_run() {
     word width, height;
     video_driver_getsize(&width, &height);
+
+    
     logs = (char*) new_alloc( 1024 );
     index_logs = 0;
 
+
     term_drawChar('>', text_color);
-    while( true )
+    while( 1 )
     {
         char key = getchar();
         if( key == 0 ) continue;
@@ -122,24 +126,31 @@ void term_scrollup() {
     if( ttext_cursor.y < max_char_height )
         return;
 
-    dword framebuffer = video_driver_getframebuffer();
+    byte* framebuffer = ( byte* ) video_driver_getframebuffer();
     word width, height;
     video_driver_getsize(&width, &height);
 
+
+    int size = width * 16 * 3;
     for( int i = 0; i < max_char_height - 1; i++ )
     {
         // source address = framebuffer + ( width screen * height of char * bytes per pixel ) * i
-        dword src_addr = framebuffer + ( width * 16 * 3 ) * (i + 1);
+        void* src_addr = (void*) &framebuffer[ size * (i + 1) ];
         // destination address
-        dword dest_addr = framebuffer + ( width * 16 * 3 ) * i;
+        void* dest_addr = (void*) &framebuffer[ size * i ];
 
         // copy src pixel into dest pixel
-        memcopy( (void*) dest_addr, (void*) src_addr, width * 16 * 3 );
+        memcopy( (void*) dest_addr, (void*) src_addr, size );
     }
 
     // clear pixels at last line
-    memzero( (void*)( framebuffer + (width * 16 * 3) * (max_char_height - 1)), width * 16 * 3 );
-    ttext_cursor.y--;
+    void* dest_addr = ( void* ) &framebuffer[ ( width * 16 * 3 ) * ( max_char_height - 1) ];
+    memzero( (void*) dest_addr, width * 16 * 3 );
+    ttext_cursor.y = max_char_height - 1;
+
+    int index = ttext_cursor.x + ttext_cursor.y * max_char_width;
+    ttext_cursor.x = (dword)(index % max_char_width );
+    ttext_cursor.y = (dword)(index / max_char_width );
 }
 
 void term_exec( char* cmd ) {
@@ -163,6 +174,8 @@ void term_exec( char* cmd ) {
         index++;
     }
 
+    
+
     if( argc > 0 )
     {
         if( strcmp(args[0], "CLEAR") == 0 ) {
@@ -184,9 +197,10 @@ void term_exec( char* cmd ) {
             text_color = R8G8B8(r, g, b);
         } else if ( strcmp("MEMSIZE", args[0]) == 0 )
         {
-            dword mem_use = page_getSizeMemoryUse();
+            qword mem_use = page_getSizeMemoryUse();
             if( argc > 1 && strcmp(args[1], "-KB") == 0 ) {
-                printf("Memory Size Use: %i kb \n", (dword)(mem_use / 1024) );
+                qword n = (qword)( mem_use / 1024 );
+                printf("Memory Size Use: %i kb \n", n );
             } else {
                 printf("Memory Size Use: %i bytes \n", mem_use);
             }

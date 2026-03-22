@@ -6,10 +6,11 @@ void serial_print( const char* text ) {
     while( text[i] != 0 )
         serial_write( 0x3F8, text[i++] );
 }
-void serial_printf( const char* format, ... ) {
-    dword* stack = ( dword* )( &format + 1 );
+void serial_printf_implementation( qword* rsp ) {
+    char* format = ( char* )( rsp[0] );
+    qword* stack = ( qword* )( &rsp[1] );
     int i = 0;
-    char ntmp[20];
+    char ntmp[64];
 
     while( format[i] != 0 )
     {
@@ -21,7 +22,7 @@ void serial_printf( const char* format, ... ) {
                 serial_print( ntmp );
             } else if ( format[i + 1] == 'x' )
             {
-                hexstr( (dword)(*stack++), ntmp );
+                hexstr( (qword)(*stack++), ntmp );
                 serial_print( ntmp );
             } else if ( format[i + 1] == 's' )
             {

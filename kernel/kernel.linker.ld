@@ -1,28 +1,32 @@
 ENTRY(__start)
+
+KERNEL_HIGH_HALF = 0xFFFFFFFF80100000;
+
 SECTIONS
 {
-    . = 0xC0100000;
+    . = KERNEL_HIGH_HALF;
     __kernel_start = .;
-    .header : {
+    .header : AT(ADDR(.header) - KERNEL_HIGH_HALF) {
         *(.header)
     }
 
-    .text : ALIGN(0x1000) {
+    .text : AT(ADDR(.text) - KERNEL_HIGH_HALF) {
         *(.text)
     }
 
-    .data : ALIGN(0x1000) {
+    .data : AT(ADDR(.data) - KERNEL_HIGH_HALF) ALIGN(4K) {
         *(.data)
     }
 
-    .rodata : ALIGN(0x1000) {
+    .rodata : AT(ADDR(.rodata) - KERNEL_HIGH_HALF) ALIGN(4K) {
         *(.rodata)
     }
 
-    .bss : ALIGN(0x1000) {
+    .bss : AT(ADDR(.bss) - KERNEL_HIGH_HALF) ALIGN(0x1000) {
         *(COMMON)
         *(.bss)
     }
+    . = ALIGN(0x1000);
     __heap_start = .;
     __kernel_end = .;
 }

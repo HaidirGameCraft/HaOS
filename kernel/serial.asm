@@ -1,10 +1,10 @@
 section .text
 global serial_connect
 serial_connect:
-    push ebp
-    mov ebp, esp
+    push rbp
+    mov rbp, rsp
 
-    mov ebx, dword [esp + 4]
+    mov ebx, edi        ; rdi - Port
     xor edx, edx
 
     ; Disable Interrupt Register
@@ -63,10 +63,10 @@ serial_connect:
     in al, dx
     cmp al, 0xCE
     je .no_fault
-    mov eax, 1
+    mov rax, 1
 
-    mov esp, ebp
-    pop ebp
+    mov rsp, rbp
+    pop rbp
     ret
 
 .no_fault:
@@ -74,14 +74,14 @@ serial_connect:
     add dx, 4
     mov al, 0xF
 
-    xor eax, eax
-    mov esp, ebp
-    pop ebp
+    xor rax, rax
+    mov rsp, rbp
+    pop rbp
     ret
 
 global serial_disconnect
 serial_disconnect:
-    mov ebx, dword [esp + 4]
+    mov ebx, edi            ; rdi - Port
     ; Disable Interrupt
     mov dx, bx
     inc dx      ; Port + 1
@@ -111,10 +111,10 @@ serial_disconnect:
 
 global serial_read
 serial_read:
-    mov ebx, dword [esp + 4]
+    mov ebx, edi
     mov dx, bx
 .wait:
-    xor eax, eax
+    xor rax, rax
     add dx, 5
     in al, dx
     and al, 1
@@ -127,7 +127,7 @@ serial_read:
 
 global serial_write
 serial_write:
-    mov ebx, dword [esp + 4]
+    mov ebx, edi
     mov dx, bx
 .wait:
     xor eax, eax
@@ -137,8 +137,30 @@ serial_write:
     test al, al
     jz .wait
 
-    mov al, byte [esp + 8]
+    mov rax, rsi
     sub dx, 5
     out dx, al
-    xor eax, eax
+    xor rax, rax
+    ret
+
+
+global serial_printf
+serial_printf:
+    push rbp
+    mov rbp, rsp 
+
+    push r9
+    push r8
+    push rcx
+    push rdx
+    push rsi
+    push rdi
+    
+    mov rdi, rsp
+    [extern serial_printf_implementation]
+    call serial_printf_implementation
+
+
+    mov rsp, rbp
+    pop rbp
     ret

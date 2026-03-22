@@ -10,7 +10,7 @@ byte ps2_is_output_serve = 1;
 const char* scancode_set_1 = "\0\n1234567890-=\x08\x09QWERTYUIOP[]\n\0ASDFGHJKL;'`\0\\ZXCVBNM,./\0*\0 \0";
 
 void keyboard_init() {
-    interrupt_register( 33, (dword) keyboard_handle );
+    interrupt_register( 33, (qword) keyboard_handle );
 }
 
 void keyboard_handle() {

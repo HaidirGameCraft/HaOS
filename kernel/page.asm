@@ -1,11 +1,11 @@
 section .text
 global page_enable
 page_enable:
-    mov eax, dword [esp + 4]
-    mov cr3, eax
+    mov rax, rdi
+    mov cr3, rax
 
-    mov eax, cr0
+    mov rax, cr0
     or eax, 0x80000001
-    mov cr0, eax
+    mov cr0, rax
 
     ret

@@ -4,6 +4,7 @@ CCFLAGS=-m32 -Wextra -Wall -ffreestanding -fno-builtin -fno-stack-protector -nos
 
 BUILD_BOOT_DIR=../build/boot
 BUILD_BOOTSTAGE_DIR=../build/boot/stage
+BUILD_BOOTSTAGE64_DIR=../build/boot/stage64
 BOOTLOADER_FILENAME=bootLoader.bin
 
 BOOTSTAGE_C_FILES=$(shell find ./stage/ -name '*.c')
@@ -12,8 +13,14 @@ BOOTSTAGE_ASM_FILES=$(shell find ./stage/ -name '*.asm')
 BOOTSTAGE_C_OBJ=$(patsubst ./stage/%.c, ${BUILD_BOOTSTAGE_DIR}/%.c.o, ${BOOTSTAGE_C_FILES})
 BOOTSTAGE_ASM_OBJ=$(patsubst ./stage/%.asm, ${BUILD_BOOTSTAGE_DIR}/%.asm.o, ${BOOTSTAGE_ASM_FILES})
 
+BOOTSTAGE64_C_FILES=$(shell find ./stage64/ -name '*.c')
+BOOTSTAGE64_ASM_FILES=$(shell find ./stage64/ -name '*.asm')
+
+BOOTSTAGE64_C_OBJ=$(patsubst ./stage64/%.c, ${BUILD_BOOTSTAGE64_DIR}/%.c.o, ${BOOTSTAGE64_C_FILES})
+BOOTSTAGE64_ASM_OBJ=$(patsubst ./stage64/%.asm, ${BUILD_BOOTSTAGE64_DIR}/%.asm.o, ${BOOTSTAGE64_ASM_FILES})
+
 all: 	build_bootloader \
-		build_bootstage
+		build_bootstage64
 
 list:
 	echo ${BOOTSTAGE_C_FILES}
@@ -34,6 +41,15 @@ ${BUILD_BOOTSTAGE_DIR}/%.c.o: ./stage/%.c
 ${BUILD_BOOTSTAGE_DIR}/%.asm.o: ./stage/%.asm
 	nasm -f elf -o $@ $<
 
+build_bootstage64: ${BOOTSTAGE64_C_OBJ} ${BOOTSTAGE64_ASM_OBJ}
+	ld -m elf_x86_64 -T bootstage.linker.ld -o ${BUILD_BOOTSTAGE64_DIR}/bootstage.bin ${BOOTSTAGE64_ASM_OBJ} ${BOOTSTAGE64_C_OBJ} --oformat=binary
+	ld -g -m elf_x86_64 -T bootstage.linker.ld -o ${BUILD_BOOTSTAGE64_DIR}/bootstage.elf ${BOOTSTAGE64_ASM_OBJ} ${BOOTSTAGE64_C_OBJ}
+
+${BUILD_BOOTSTAGE64_DIR}/%.c.o: ./stage64/%.c
+	gcc ${CCFLAGS} -g -m64 -I"./stage64/" -o $@ -c $<
+
+${BUILD_BOOTSTAGE64_DIR}/%.asm.o: ./stage64/%.asm
+	nasm -f elf64 -o $@ $<
 
 bind:
 	dd if=/dev/zero of=../OS.bin bs=512 count=131072
@@ -46,7 +62,7 @@ bind:
 
 mkdir:
 	mkdir -p 	${BUILD_BOOT_DIR}
-	mkdir -p 	${BUILD_BOOTSTAGE_DIR}
+	mkdir -p 	${BUILD_BOOTSTAGE_DIR} ${BUILD_BOOTSTAGE64_DIR}
 	mkdir -p 	${BUILD_BOOTSTAGE_DIR}/driver \
 				${BUILD_BOOTSTAGE_DIR}/fonts \
 				${BUILD_BOOTSTAGE_DIR}/cpu

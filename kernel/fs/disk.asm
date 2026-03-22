@@ -7,7 +7,7 @@ ata_init_pio:
     add dx, 6
 
     mov al, 0xE0
-    mov ecx, dword [esp + 4]
+    mov ecx, edi
     shr ecx, 24
     and cl, 0x0F
     add al, cl
@@ -21,7 +21,7 @@ ata_init_pio:
 
     ; Set LBA (low, mid, high)
     inc dx
-    mov eax, dword [esp + 4]
+    mov eax, edi
     out dx, al
 
     inc dx

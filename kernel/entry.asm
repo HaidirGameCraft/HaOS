@@ -1,19 +1,22 @@
+
+extern __kernel_start
+extern __kernel_end
 section .header
-[extern __kernel_start]
-[extern __kernel_end]
+header_start:
     db "KERNEL    ", 0
-    dd __kernel_start
-    dd __kernel_end
-    dd __start
+    dq __kernel_start
+    dq __kernel_end
+    dq __start
 
 section .text
+global __start
+extern kernel_main
 __start:
     ; bootstage info
-    mov eax, dword [esp + 4]
-    mov esp, __stack_bottom
+    mov rax, rdi            ; Get the BootStage Address
+    mov rsp, __stack_bottom
 
-    push eax
-    [extern kernel_main]
+    mov rdi, rax
     call kernel_main
 
 .halt:
@@ -21,7 +24,5 @@ __start:
     jmp .halt
 
 section .bss
-align 4
-__stack_top: resb 8196
+__stack_top: resb 0x2000
 __stack_bottom:
-align 4

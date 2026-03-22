@@ -3,18 +3,18 @@
 #include "config.h"
 
 typedef struct __alloc_block_t {
-    dword size;
+    qword size;
     byte available;
     struct __alloc_block_t* next;
 } __attribute__((packed)) alloc_block_t;
 
 alloc_block_t* heap_start = NULL;
 alloc_block_t* heap_end = NULL;
-dword heap_size = 0;
+qword heap_size = 0;
 
 void  init_alloc() {
     heap_start = ( alloc_block_t* ) __heap_start;
-    page_mapv( (dword) heap_start, 0x1000 );        // Mapped the heap address intio page table
+    page_mapv( (qword) heap_start, 0x1000 );        // Mapped the heap address intio page table
 
     heap_start->available = 1;
     heap_start->size = 0x1000;
@@ -24,7 +24,7 @@ void  init_alloc() {
     heap_end = ( alloc_block_t* ) heap_start;
 }
 
-void* new_alloc( dword size ) {
+void* new_alloc( qword size ) {
     if( size == 0 ) return NULL;
 
     alloc_block_t* current = heap_start;
@@ -37,26 +37,41 @@ void* new_alloc( dword size ) {
             if( current->size == size + sizeof( alloc_block_t ) )
             {
                 current->available = 0;
-                return (void*)( (dword) current + sizeof( alloc_block_t ) ); // returning the available block without any change
+                return (void*)( (qword) current + sizeof( alloc_block_t ) ); // returning the available block without any change
             } else if ( current->size > size + sizeof( alloc_block_t ))
             {
                 current->available = 0;
-                dword remain_size = current->size - ( size + sizeof( alloc_block_t ) );
+                dword size_block = size + sizeof( alloc_block_t );
+                
+                dword remain_size = current->size - ( size_block );
                 if( remain_size < sizeof( alloc_block_t ) )
-                    return (void*)( (dword) current + sizeof( alloc_block_t ) );
+                    return (void*)( (qword) current + sizeof( alloc_block_t ) );
                 
                 // Split the block ( if remains ) with new block
-                alloc_block_t* new_block = (alloc_block_t*)((dword) current + size + sizeof( alloc_block_t ) );
+                alloc_block_t* new_block = (alloc_block_t*)((qword) current + size_block );
+
+                // Checking there is out of boundary or not
+                qword end_heap = (qword) heap_start + heap_size;
+                if( end_heap < ( qword ) new_block + size_block )
+                {
+                    // Need alloc new frame to extend alloc
+                    page_mapv( ((qword) heap_start + heap_size), 0x1000 );
+                    heap_size += 0x1000;
+
+                    remain_size = ((qword) heap_start + heap_size ) - ( qword ) new_block; 
+                }
+
                 new_block->size = remain_size;
                 new_block->next = current->next;
+                new_block->available = 1;
                 current->next = new_block;
-                current->size = size + sizeof( alloc_block_t );
+                current->size = size_block;
 
                 // Check if new block is end
                 if( new_block->next == NULL )
                     heap_end = new_block;
 
-                return (void*)((dword) current + sizeof( alloc_block_t ) );
+                return (void*)((qword) current + sizeof( alloc_block_t ) );
             }
         }
 
@@ -67,7 +82,7 @@ void* new_alloc( dword size ) {
     }
 
     // If there is no block that need to give, make new page
-    page_mapv( (dword) heap_start + heap_size, 0x1000 );
+    page_mapv( (qword) heap_start + heap_size, 0x1000 );
     heap_size += 0x1000;
     return new_alloc( size );
 }
@@ -75,11 +90,11 @@ void* new_alloc( dword size ) {
 void  free_alloc( void* ptr ) {
     if( ptr == NULL ) return;
 
-    alloc_block_t* block = (alloc_block_t*)((dword) ptr - sizeof( alloc_block_t ) );
+    alloc_block_t* block = (alloc_block_t*)((qword) ptr - sizeof( alloc_block_t ) );
     alloc_block_t* prev_block = block; // find the previous block;
     alloc_block_t* next_block = block->next;
 
-    if( (dword)(prev_block) == (dword)(heap_start) )
+    if( (qword)(prev_block) == (qword)(heap_start) )
     {
         block->available = 1;
         if( next_block != NULL && next_block->available == 1 )
