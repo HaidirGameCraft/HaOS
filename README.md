@@ -48,4 +48,3 @@ make run
 
 ## References And Acknowledges
 - [OSDev Wiki](https://wiki.osdev.org): The valuable resource of Operating System
-- [pcface](https://github.com/susam/pcface/tree/main#): The font bitmap
