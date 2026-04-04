@@ -63,3 +63,21 @@ close:
     int $0x80
     ret
 
+.globl put_pixel
+put_pixel:
+    mov $4, %rax
+    int $0x80
+    ret
+
+.globl putc
+putc:
+    mov $5, %rax
+    int $0x80
+    ret
+
+.globl exit
+exit:
+    mov $6, %rax
+    int $0x80
+    ret
+

@@ -15,12 +15,14 @@ BOOTSTAGE_ASM_OBJ=$(patsubst ./stage/%.asm, ${BUILD_BOOTSTAGE_DIR}/%.asm.o, ${BO
 
 BOOTSTAGE64_C_FILES=$(shell find ./stage64/ -name '*.c')
 BOOTSTAGE64_ASM_FILES=$(shell find ./stage64/ -name '*.asm')
+BOOTSTAGE64_GAS_FILES=$(shell find ./stage64/ -name '*.s')
 
 BOOTSTAGE64_C_OBJ=$(patsubst ./stage64/%.c, ${BUILD_BOOTSTAGE64_DIR}/%.c.o, ${BOOTSTAGE64_C_FILES})
 BOOTSTAGE64_ASM_OBJ=$(patsubst ./stage64/%.asm, ${BUILD_BOOTSTAGE64_DIR}/%.asm.o, ${BOOTSTAGE64_ASM_FILES})
-
-all: 	build_bootloader \
-		build_bootstage64
+BOOTSTAGE64_GAS_OBJ=$(patsubst ./stage64/%.s, ${BUILD_BOOTSTAGE64_DIR}/%.gas.o, ${BOOTSTAGE64_GAS_FILES})
+all: build_bootloader \
+	build_bootstage64 \
+	build_uefi
 
 list:
 	echo ${BOOTSTAGE_C_FILES}
@@ -30,10 +32,15 @@ list:
 
 build_bootloader: mkdir
 	nasm -f bin boot.asm -o ${BUILD_BOOT_DIR}/${BOOTLOADER_FILENAME}
+	nasm -f elf boot32.asm -o ${BUILD_BOOT_DIR}/boot32.o
+	ld -m elf_i386 -T boot32.ld -o ${BUILD_BOOT_DIR}/boot32.bin ${BUILD_BOOT_DIR}/boot32.o --oformat binary
 
 build_bootstage: ${BOOTSTAGE_C_OBJ} ${BOOTSTAGE_ASM_OBJ}
 	ld -m elf_i386 -T bootstage.linker.ld -o ${BUILD_BOOTSTAGE_DIR}/bootstage.bin ${BOOTSTAGE_ASM_OBJ} ${BOOTSTAGE_C_OBJ} --oformat=binary
 	ld -g -m elf_i386 -T bootstage.linker.ld -o ${BUILD_BOOTSTAGE_DIR}/bootstage.elf ${BOOTSTAGE_ASM_OBJ} ${BOOTSTAGE_C_OBJ}
+
+build_uefi:
+	make -C UEFI/
 
 ${BUILD_BOOTSTAGE_DIR}/%.c.o: ./stage/%.c
 	gcc ${CCFLAGS} -I"./stage/" -o $@ -c $<
@@ -41,15 +48,18 @@ ${BUILD_BOOTSTAGE_DIR}/%.c.o: ./stage/%.c
 ${BUILD_BOOTSTAGE_DIR}/%.asm.o: ./stage/%.asm
 	nasm -f elf -o $@ $<
 
-build_bootstage64: ${BOOTSTAGE64_C_OBJ} ${BOOTSTAGE64_ASM_OBJ}
-	ld -m elf_x86_64 -T bootstage.linker.ld -o ${BUILD_BOOTSTAGE64_DIR}/bootstage.bin ${BOOTSTAGE64_ASM_OBJ} ${BOOTSTAGE64_C_OBJ} --oformat=binary
-	ld -g -m elf_x86_64 -T bootstage.linker.ld -o ${BUILD_BOOTSTAGE64_DIR}/bootstage.elf ${BOOTSTAGE64_ASM_OBJ} ${BOOTSTAGE64_C_OBJ}
+build_bootstage64: ${BOOTSTAGE64_C_OBJ} ${BOOTSTAGE64_ASM_OBJ} ${BOOTSTAGE64_GAS_OBJ}
+	ld -m elf_x86_64 -T bootstage.linker.ld -o ${BUILD_BOOTSTAGE64_DIR}/bootstage.bin ${BOOTSTAGE64_ASM_OBJ} ${BOOTSTAGE64_C_OBJ} ${BOOTSTAGE64_GAS_OBJ} --oformat=binary
+	ld -g -m elf_x86_64 -T bootstage.linker.ld -o ${BUILD_BOOTSTAGE64_DIR}/bootstage.elf ${BOOTSTAGE64_ASM_OBJ} ${BOOTSTAGE64_C_OBJ} ${BOOTSTAGE64_GAS_OBJ}
 
 ${BUILD_BOOTSTAGE64_DIR}/%.c.o: ./stage64/%.c
-	gcc ${CCFLAGS} -g -m64 -I"./stage64/" -o $@ -c $<
+	gcc ${CCFLAGS} -g -m64 -I"../kernel" -I"./stage64/" -o $@ -c $<
 
 ${BUILD_BOOTSTAGE64_DIR}/%.asm.o: ./stage64/%.asm
 	nasm -f elf64 -o $@ $<
+
+${BUILD_BOOTSTAGE64_DIR}/%.gas.o: ./stage64/%.s
+	as --64 -o $@ $<
 
 bind:
 	dd if=/dev/zero of=../OS.bin bs=512 count=131072

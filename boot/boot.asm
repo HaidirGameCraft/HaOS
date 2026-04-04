@@ -6,6 +6,14 @@ jmp short __boot_start
 times 59 db 0
 
 __boot_start:
+
+    jmp 0:.flush
+.flush:
+    mov ax, 0
+    mov ds, ax
+    mov es, ax 
+    mov ss, ax
+
     mov bp, 0x7C00
     mov sp, bp
 
@@ -16,10 +24,10 @@ __boot_start:
     call A20Check
     test ax, ax
     jz .a20_disable_status
-
+;
     mov si, a20_line_enable_msg
     call print
-
+;
     jmp .a20_end_check
 .a20_disable_status:
     mov si, a20_line_disable_msg
@@ -28,9 +36,6 @@ __boot_start:
     ; enable A2
     call A20Enable
 .a20_end_check:
-
-
-
     ; Configure DAP
     mov ax, 1
     mov word [DAP + DiskAddressPacket.count], ax
@@ -50,57 +55,9 @@ __boot_start:
     mov si, DAP
     int 13h
 
-    ; Copy into BootStage Header
-    mov si, buffer
-    mov di, __bootstage_header
-    mov cx, 22
-.copy_loop:
-    mov al, byte [si]
-    mov byte [di], al
-    inc si
-    inc di
-    dec cx
-    test cx, cx
-    jnz .copy_loop
-
-    ; Copy the Bootstage into destination
-    mov ecx, dword [__bootstage_header + BootStage_Header.bootEnd]
-    mov eax, dword [__bootstage_header + BootStage_Header.bootStart]
-    mov ebx, 1      ; starting LBA Address
-    sub ecx, eax
-
-    cmp ecx, 0
-    jle .done_read_disk
-.loop_read_disk:
-
-    mov word [DAP + DiskAddressPacket.buffer], ax
-    push eax
-    shl eax, 16
-    mov word [DAP + DiskAddressPacket.buffer + 2], ax
-    mov dword [DAP + DiskAddressPacket.start], ebx
-
-    ; Read Extended Sector
-    xor eax, eax
-    mov ah, 42h
-    mov dl, byte [__drive_number]
-    mov si, DAP
-    int 13h
-
-    pop eax
-    inc ebx
-    add eax, 512
-    sub ecx, 512
-    cmp ecx, 0
-    jg .loop_read_disk
-.done_read_disk:
-
-    mov si, __bootstage_header
-    call print
-
-    mov eax, dword [__bootstage_header + BootStage_Header.bootEntry]
+    mov eax, dword [ buffer ]
     jmp eax
-    hlt
-    jmp $
+    nop
 
 %include "a20.asm"
 
@@ -154,7 +111,6 @@ iend
 
 a20_line_enable_msg: db "A20 Line Enable", 0xa, 0xd, 0
 a20_line_disable_msg: db "A20 Line Disable", 0xa, 0xd, 0
-
 times 510-($-$$) db 0
 dw 0xAA55
 buffer:

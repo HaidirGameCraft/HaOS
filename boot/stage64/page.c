@@ -106,11 +106,11 @@ void  page_umapframei( qword index ) {
     frame_page_table[ index ] = 0;
 }
 
-void page_map( qword length ) {
-    // TODO
-}
+//void page_map( qword length ) {
+//    // TODO
+//}
 
-void page_mapv( qword virt, qword length ) {
+void page_mapv( qword virt, qword length, word flags ) {
     size_t size = (qword)( length / PAGE_SIZE ) + ( length + PAGE_SIZE > 0 );
     for( qword i = 0; i < size; i++ ) {
         addr_t _v = virt + i * PAGE_SIZE;
@@ -161,14 +161,14 @@ void page_mapv( qword virt, qword length ) {
             continue;
         }
 
-        _pt[ pt_index ] = phy | ( 1 << 0 ) | ( 1 << 1 );
+        _pt[ pt_index ] = phy | flags;
 
 
         page_umapframe();
     }
 }
 
-void page_mapvp( qword virt, qword phys, qword length ) {
+void page_mapvp( qword virt, qword phys, qword length, word flags ) {
     size_t size = (qword)( length / PAGE_SIZE ) + ( length + PAGE_SIZE > 0 );
     for( qword i = 0; i < size; i++ ) {
         addr_t _v = virt + i * PAGE_SIZE;
@@ -217,7 +217,8 @@ void page_mapvp( qword virt, qword phys, qword length ) {
             continue;
         }
 
-        _pt[ pt_index ] = _p | ( 1 << 0 ) | ( 1 << 1 );
+        bitmap[ PAGETABLE_INDEX( _p ) / 8 ] |= 1 << (PAGETABLE_INDEX( _p ) % 8);
+        _pt[ pt_index ] = _p | flags;
 
 
         page_umapframe();

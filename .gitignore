@@ -1,11 +1,14 @@
 kernel.backup.zip
 build
 os.img
+os.gpt.img
 .vscode
 iso
 memory.txt
 TODO
 tools
 LICENSE
-licenses
-THIRD_PARTY_LICENSE
+bochs.log
+bochsrc
+system-logs.txt
+system-uefi-logs.txt

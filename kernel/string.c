@@ -6,21 +6,21 @@
 //     {
 //     }
 // }
-void memcopy( void* dest, void* src, size_t size ) {
-    byte* __dest = ( byte* ) dest;
-    byte* __src = ( byte* ) src;
+// void memcopy( void* dest, void* src, size_t size ) {
+//     byte* __dest = ( byte* ) dest;
+//     byte* __src = ( byte* ) src;
 
     
-    for( qword i = 0; i < size; i++ ) {
-        __asm__ volatile("movq %0, %%rsi" :: "r"(__src) );
-        __asm__ volatile("movq %0, %%rdi" :: "r"(__dest) );
-        __asm__ volatile("movb (%rsi), %al");
-        __asm__ volatile("movb %al, (%rdi)");
-        __asm__ volatile("incq %rsi\n\t incq %rdi");
-        __asm__ volatile("mov %%rsi, %0" : "=r"(__src) );
-        __asm__ volatile("mov %%rdi, %0" : "=r"(__dest) );
-    }
-}
+//     for( qword i = 0; i < size; i++ ) {
+//         __asm__ volatile("movq %0, %%rsi" :: "r"(__src) );
+//         __asm__ volatile("movq %0, %%rdi" :: "r"(__dest) );
+//         __asm__ volatile("movb (%rsi), %al");
+//         __asm__ volatile("movb %al, (%rdi)");
+//         __asm__ volatile("incq %rsi\n\t incq %rdi");
+//         __asm__ volatile("mov %%rsi, %0" : "=r"(__src) );
+//         __asm__ volatile("mov %%rdi, %0" : "=r"(__dest) );
+//     }
+// }
 
 size_t strsize( char* buffer ) {
     size_t index = 0;

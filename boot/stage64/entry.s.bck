@@ -1,0 +1,261 @@
+.code16
+
+
+.section .header, "a"
+.extern __BOOTSTAGE_START
+.extern __BOOTSTAGE_END
+header:
+    .asciz "BOOTSTAGE"
+    .long  __BOOTSTAGE_START
+    .long  __BOOTSTAGE_END
+    .long  __boot_start
+
+.section .text
+.extern  vesa_init
+__boot_start:
+
+    call vesa_init      #to get Video Graphics Mode
+
+    cli
+    lgdt (gdt32.desc)
+
+    // Enabling Protected Mode (Cr0)
+    mov %cr0, %eax
+    or $1, %eax
+    mov %eax, %cr0
+
+    ljmp $0x08, $protected_mode
+.section .data
+gdt32:
+gdt32.null: .quad 0x00000000
+gdt32.code: .long 0x0000FFFF
+            .long 0x00FC9A00
+gdt32.data: .long 0x0000FFFF
+            .long 0x00FC9200
+gdt32.desc: .word gdt32.desc - gdt32 - 1
+            .long gdt32
+
+
+.code32
+.section .text
+.extern serial_init
+.extern asm_serial_print
+protected_mode:
+
+    // set the data segmentation
+    mov $0x10 ,%ax
+    mov %ax, %ds
+    mov %ax, %es
+    mov %ax, %ss
+    mov %ax, %fs
+    mov %ax, %gs
+
+    mov $__stack_bottom, %esp
+    mov %esp, %ebp 
+
+    // initialize serial to DEBUG (QEMU Only)
+    //mov $0x3F8, %bx
+    call serial_init
+
+    //mov $lm_support_message, %esi
+    //call asm_serial_print
+    // Thus, We are going to jump Long Mode ( 64 bits )    
+    jmp check_long_mode_support
+halt:
+    hlt
+    jmp halt
+
+check_long_mode_support:
+    // Check are cpuid is support
+    pushf
+    pop %eax
+    mov %eax, %ecx 
+    
+    or $0x200000, %eax
+    push %eax
+    popf
+
+    pushf
+    pop %eax
+
+    xor %ecx, %eax
+    and $0x200000, %eax
+
+    push %ecx
+    popf
+
+    cmp $0, %eax
+    je .Lclms.cpuid_unsupport
+    // CPUID is support now
+
+    mov $cpuid_support_message, %esi
+    call asm_serial_print
+
+    // get Intel Brand Version
+    mov $0x80000000, %eax
+    cpuid
+    
+    // determine is ID below than 0x80000001
+    cmp $0x80000001, %eax
+    jb .Lclms.lm_unsupport
+    // Long Mode is support
+
+    mov $0x80000001, %eax
+    cpuid
+
+    and $0x20000000, %eax
+    jnz .Lclms.lm_unsupport
+
+    mov $lm_support_message, %esi
+    call asm_serial_print
+
+    jmp setup_longmode
+
+.Lclms.lm_unsupport:
+    mov $lm_unsupport_message, %esi
+    call asm_serial_print
+
+    jmp halt
+.Lclms.cpuid_unsupport:
+    mov $cpuid_unsupport_message, %esi
+    call asm_serial_print
+
+    jmp halt
+    // Check the brand of CPU using cpuid
+
+.equ PAGING_FLAGS_DEFAULT, 0b11  # Present and ReadWrite Page
+.equ pml4_table, 0x2000
+.equ pdpt_table, 0x3000
+.equ pdt_table, 0x4000
+.equ pt_table, 0x5000
+.equ frame_table, 0x6000
+setup_longmode:
+    // initialize paging
+
+    mov pdpt_table, %eax
+    or PAGING_FLAGS_DEFAULT, %ax
+    mov %eax, (pml4_table)
+
+    mov pdt_table, %eax
+    or PAGING_FLAGS_DEFAULT, %ax
+    mov %eax, (pdpt_table)
+
+    mov pdt_table, %eax
+    or PAGING_FLAGS_DEFAULT, %ax
+    mov %eax, (pdpt_table)
+    
+    mov pt_table, %eax
+    or PAGING_FLAGS_DEFAULT, %ax
+    mov %eax, (pdt_table)
+
+    mov pdt_table, %eax
+    add $4088, %ax
+    mov %eax, %ecx
+
+    mov frame_table, %eax
+    or PAGING_FLAGS_DEFAULT, %ax
+    mov %eax, (%ecx)
+
+    // We need to initialize the physical address especially tables
+    mov $0, %ecx
+    mov pt_table, %edi
+.Linit_table_loop:
+    mov $0x1000, %eax
+    mul %ecx
+    or PAGING_FLAGS_DEFAULT, %ax
+
+    movl %eax, (%edi)
+    add $8, %edi
+    inc %ecx
+    test $0x06, %ecx
+    jnz .Linit_table_loop
+
+// This code address we need to mapped
+    mov __BOOTSTAGE_END, %eax
+    mov __BOOTSTAGE_START, %ecx
+
+    and ~0xFFF, %eax
+    and ~0xFFF, %ecx
+    sub %ecx, %eax
+    mov %eax, %esi
+
+    shr $0x0B, %ecx
+    mov %ecx, %eax
+    mov $8, %ecx
+    mul %ecx
+
+    mov pt_table, %edi
+    add %eax, %edi
+    xor %ecx, %ecx
+.Lmapped_code_address:
+    mov $0x1000, %eax
+    mul %ecx
+    add %esi, %eax
+    or PAGING_FLAGS_DEFAULT, %ax
+
+    movl %eax, (%edi)
+    add $8, %edi
+    inc %ecx
+    test __BOOTSTAGE_END, %eax
+    jb .Lmapped_code_address
+
+    // Now we need to active PAE ( Physical Address Extention )
+    mov %cr4, %eax
+    or $0x10, %eax
+    mov %eax, %cr4
+
+    // Enabling Long Mode through EFER_MSR
+    mov $0xC0000080, %ecx
+    rdmsr
+
+    mov $0x100, %eax
+    wrmsr
+
+    mov pml4_table, %eax
+    mov %eax, %cr0
+
+    mov %cr3, %eax
+    or $0x80000000, %eax
+    mov %eax, %cr3
+
+    // We are going to long mode
+    // make new gdt for 64 bits
+    cli
+    lgdt (gdt64.desc)
+    ljmp $0x08, $long_mode
+
+.section .data
+gdt64:
+.Lgdt64.null:   .quad 0x00000000
+.Lgdt64.code:   .long 0x0000FFFF
+                .long 0x00FA9A00
+.Lgdt64.data:   .long 0x0000FFFF
+                .long 0x00FC9200
+gdt64.desc:     .word gdt64.desc - gdt64 - 1
+                .quad gdt64
+.align 0x08
+cpuid_support_message: .asciz "CPUID is Support\n"
+cpuid_unsupport_message: .asciz "CPUID is Unsupport\n"
+lm_support_message: .asciz "Long Mode is Support\n"
+lm_unsupport_message: .asciz "Long Mode is Unsupport on your Device\n"
+
+.section .bss
+__stack_top:    .skip 0x2000
+__stack_bottom:
+
+.code64
+.section .text
+.extern main
+long_mode:
+    
+    mov $0x10, %ax
+    mov %ax, %ds
+    mov %ax, %es
+    mov %ax, %ss
+    mov %ax, %gs
+    mov %ax, %fs
+    
+    call main
+.Lhalt:
+    hlt
+    jmp .Lhalt

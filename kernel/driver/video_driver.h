@@ -3,8 +3,11 @@
 #include <type.h>
 #include <header.h>
 
-
-void    video_driver_init( bootstage_info_t* bootstage_info );
+void    video_driver_init( 
+    #ifdef BOOTSTAGE64
+        bootstage_info_t* bootstage_info
+    #endif
+);
 void    video_driver_mapped();
 void    video_driver_putPixel( int x, int y, dword color );
 void    video_driver_clearScreen( dword color );

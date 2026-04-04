@@ -58,6 +58,7 @@ typedef struct {
 
 #define BOOTSTAGE_FLAGS_GRAPHICS_MODE_BIT   1
 
+/*
 typedef struct {
     qword identifier;
     qword flags;
@@ -67,7 +68,7 @@ typedef struct {
     word bytes_per_pixel;
     dword framebuffer;
 } __attribute__((packed)) bootstage_info_t;
-
+*/
 extern VesaBlock_Info_t vesaInfo;
 extern VesaMode_Info_t vesaModeInfo;
 extern void __BOOTSTAGE_START();

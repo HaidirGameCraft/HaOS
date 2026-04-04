@@ -18,16 +18,18 @@
 byte* bitmap = ( byte* ) PAGE_BITMAP_ADDRESS;
 
 qword* pmlt4 = ( qword* ) PMLT4_ADDRESS;
-qword* pdpt = ( qword* ) PDPT_ADDRESS;
-qword* pdt = ( qword* ) PDT_ADDRESS;
-qword* first_pt = ( qword* )  FIRST_PT_ADDRESS;
 qword* frame_pt = ( qword* ) FRAME_PT_ADDRESS;
 
 qword page_getframe();
 void  page_mapframe( qword address );
 void  page_umapframe();
 
+void page_set_bitmap( qword addr );
+void page_clear_bitmap( qword addr );
+
 void page_init() {
+
+    __asm__ volatile("mov %%cr3, %0" : "=r"( pmlt4 ) );
     
     // We make paging to higher half kernel
     void* kernel_start = (void*) &__kernel_start;
@@ -42,13 +44,14 @@ void page_init() {
 
 qword* page_create() {
 
+    word flags = PAGE_PRESENT | PAGE_READWRITE;
     // Simple and easy, just get the available frame
-    qword* __pmlt4 = ( qword* ) page_alloc4K();
+    qword* __pmlt4 = ( qword* ) page_alloc4K( flags );
 
     // Alloc as First Page Table
-    qword* __pdpt = ( qword* ) page_alloc4K();
-    qword* __pdt = ( qword* ) page_alloc4K();
-    qword* __pt = ( qword* ) page_alloc4K();
+    qword* __pdpt = ( qword* ) page_alloc4K(flags);
+    qword* __pdt = ( qword* ) page_alloc4K(flags);
+    qword* __pt = ( qword* ) page_alloc4K(flags);
 
     //page_mapframe((qword) __pt );
     __pmlt4[0] = ((qword) __pdpt) | 1 << 1 | 1 << 0;
@@ -158,7 +161,22 @@ void page_installMainPage() {
     page_setPMLT4Default();
     page_enable( (qword) pmlt4 );
 }
-qword page_alloc4K() {
+
+void page_set_bitmap( qword addr ) {
+    addr = addr >> 12;
+    dword idx = ( dword )( addr / 8 );
+    dword off = ( dword )( addr % 8 );
+    bitmap[ idx ] |= 1 << off;
+}
+
+void page_clear_bitmap( qword addr ) {
+    addr = addr >> 12;
+    dword idx = ( dword )( addr / 8 );
+    dword off = ( dword )( addr % 8 );
+    bitmap[idx] &= ~(1 << off);
+}
+
+qword page_alloc4K( word flags ) {
     // TODO
 
     qword phys = page_getframe();
@@ -175,7 +193,7 @@ qword page_alloc4K() {
     {
         // Find the available frame
         qword frame = page_getframe();
-        pmlt4[pmlt4_index] = frame | PAGE_PRESENT | PAGE_READWRITE;
+        pmlt4[pmlt4_index] = frame | flags;
     }
 
     qword __pdpt_addr = (qword)( pmlt4[ pmlt4_index ] & ~0x1FF );
@@ -187,7 +205,7 @@ qword page_alloc4K() {
     {
         qword frame = page_getframe();
         page_mapframe( __pdpt_addr );
-        pdpt[pdpt_index] = frame | PAGE_PRESENT | PAGE_READWRITE;
+        pdpt[pdpt_index] = frame | flags;
     }
 
     qword __pdt_addr = ( qword )( pdpt[pdpt_index] & ~0x1FF );
@@ -198,20 +216,20 @@ qword page_alloc4K() {
     if( !(pdt[pdt_index] & PAGE_PRESENT ) ) {
         qword frame = page_getframe();
         page_mapframe( __pdt_addr );
-        pdt[pdt_index] = frame | PAGE_PRESENT | PAGE_READWRITE;
+        pdt[pdt_index] = frame | flags;
     }
 
     qword __pt_addr = ( qword )( pdt[pdt_index] & ~0x1FF );
     
     page_mapframe( __pt_addr );
     qword* pt = (qword*) PAGE_ADDRESS(0, 0, 511, 0);
-    pt[pt_index] = phys | PAGE_PRESENT | PAGE_READWRITE;
+    pt[pt_index] = phys | flags;
 
     page_umapframe();
     return phys;
 }
 
-void page_mapv( qword virt, qword length ) {
+void page_mapv( qword virt, qword length, word flags ) {
     size_t size = (qword)( length / PAGE_SIZE ) + ( length % PAGE_SIZE > 0 );
     qword* _f = (qword*) PAGE_ADDRESS( 0, 0, 511, 0 );
     
@@ -232,7 +250,7 @@ void page_mapv( qword virt, qword length ) {
         {
             // Find the available frame
             qword frame = page_getframe();
-            pmlt4[pmlt4_index] = frame | PAGE_PRESENT | PAGE_READWRITE;
+            pmlt4[pmlt4_index] = frame | flags;
         }
 
         qword __pdpt_addr = (qword)( pmlt4[ pmlt4_index ] & ~0x1FF );
@@ -244,7 +262,7 @@ void page_mapv( qword virt, qword length ) {
         {
             qword frame = page_getframe();
             page_mapframe( __pdpt_addr );
-            pdpt[pdpt_index] = frame | PAGE_PRESENT | PAGE_READWRITE;
+            pdpt[pdpt_index] = frame | flags;
         }
 
         qword __pdt_addr = ( qword )( pdpt[pdpt_index] & ~0x1FF );
@@ -255,7 +273,7 @@ void page_mapv( qword virt, qword length ) {
         if( !(pdt[pdt_index] & PAGE_PRESENT ) ) {
             qword frame = page_getframe();
             page_mapframe( __pdt_addr );
-            pdt[pdt_index] = frame | PAGE_PRESENT | PAGE_READWRITE;
+            pdt[pdt_index] = frame | flags;
         }
 
         qword __pt_addr = ( qword )( pdt[pdt_index] & ~0x1FF );
@@ -264,13 +282,85 @@ void page_mapv( qword virt, qword length ) {
         
         page_mapframe( __pt_addr );
         qword* pt = (qword*) PAGE_ADDRESS(0, 0, 511, 0);
-        pt[pt_index] = phy_addr | PAGE_PRESENT | PAGE_READWRITE;
+        if( pt[pt_index] != 0 )
+            continue;
+        pt[pt_index] = phy_addr | flags;
 
         page_umapframe();
     }
 
 }
-void page_mapvp( qword virt, qword phys, qword length ) {
+
+void page_umapv( qword virt, qword length ) {
+
+    size_t size = (qword)( length / PAGE_SIZE ) + ( length % PAGE_SIZE > 0 );
+    qword* _f = (qword*) PAGE_ADDRESS( 0, 0, 511, 0 );
+    
+    for( int i = 0; i < size; i++ )
+    {
+
+        qword __virt = virt + i * PAGE_SIZE;
+
+        // Initialize pmlt4, pdpt, pd and pt index
+        int pmlt4_index = PMLT4_INDEX( __virt );
+        int pdpt_index = PDPT_INDEX( __virt );
+        int pdt_index = PDT_INDEX( __virt );
+        int pt_index = PT_INDEX( __virt );
+
+
+        // Determine and get the PDPT Address
+        if( !( pmlt4[pmlt4_index] & PAGE_PRESENT ) )
+            continue;
+
+        qword __pdpt_addr = (qword)( pmlt4[ pmlt4_index ] & ~0x1FF );
+        page_mapframe( __pdpt_addr );
+        qword* pdpt = ( qword* ) PAGE_ADDRESS(0, 0, 511, 0 );
+
+        // Determina and get the PDT Address ( Page Directory Address )
+        if( !( pdpt[pdpt_index] & PAGE_PRESENT ) )
+            continue;
+
+        qword __pdt_addr = ( qword )( pdpt[pdpt_index] & ~0x1FF );
+        page_mapframe( __pdt_addr );
+        qword* pdt = (qword*) PAGE_ADDRESS(0, 0, 511, 0);
+
+        // Determine and get the PT Addreass ( Page Table address )
+        if( !(pdt[pdt_index] & PAGE_PRESENT ) )
+            continue;
+
+        qword __pt_addr = ( qword )( pdt[pdt_index] & ~0x1FF );
+        // Get the available Address to do mapping
+        
+        page_mapframe( __pt_addr );
+        qword* pt = (qword*) PAGE_ADDRESS(0, 0, 511, 0);
+
+        qword addr = pt[pt_index] & ~0x1FF;
+        pt[pt_index] = 0;
+        page_clear_bitmap( addr );
+
+        /*
+        byte is_ready_remove = 0;
+        for( int j = 0; j < PAGE_ENTRIES; j++ )
+        {
+            if( pt[pt_index] != 0 )
+            {
+                is_ready_remove = 0;
+                break;
+            }
+        }
+
+        if( is_ready_remove == 1 )
+        {
+            page_clear_bitmap( __pt_addr );
+            page_mapframe( __pdt_addr );
+            pdt[ pdt_index ] = 0;
+        }
+        */
+        page_umapframe();
+    }
+}
+
+void page_mapvp( qword virt, qword phys, qword length, word flags ) {
     size_t size = (qword)( length / PAGE_SIZE ) + ( length % PAGE_SIZE > 0 );
     
     for( int i = 0; i < size; i++ )
@@ -290,7 +380,7 @@ void page_mapvp( qword virt, qword phys, qword length ) {
         {
             // Find the available frame
             qword frame = page_getframe();
-            pmlt4[pmlt4_index] = frame | PAGE_PRESENT | PAGE_READWRITE;
+            pmlt4[pmlt4_index] = frame | flags;
         }
 
         qword __pdpt_addr = (qword)( pmlt4[ pmlt4_index ] & ~0x1FF );
@@ -302,7 +392,7 @@ void page_mapvp( qword virt, qword phys, qword length ) {
         {
             qword frame = page_getframe();
             page_mapframe( __pdpt_addr );
-            pdpt[pdpt_index] = frame | PAGE_PRESENT | PAGE_READWRITE;
+            pdpt[pdpt_index] = frame | flags;
         }
 
         qword __pdt_addr = ( qword )( pdpt[pdpt_index] & ~0x1FF );
@@ -313,7 +403,7 @@ void page_mapvp( qword virt, qword phys, qword length ) {
         if( !(pdt[pdt_index] & PAGE_PRESENT ) ) {
             qword frame = page_getframe();
             page_mapframe( __pdt_addr );
-            pdt[pdt_index] = frame | PAGE_PRESENT | PAGE_READWRITE;
+            pdt[pdt_index] = frame | flags;
         }
 
         qword __pt_addr = ( qword )( pdt[pdt_index] & ~0x1FF );
@@ -326,7 +416,7 @@ void page_mapvp( qword virt, qword phys, qword length ) {
             continue;
         }
 
-        pt[pt_index] = __phys | PAGE_PRESENT | PAGE_READWRITE;
+        pt[pt_index] = __phys | flags;
         page_umapframe();
     }
 }
@@ -346,4 +436,24 @@ qword page_getSizeMemoryUse() {
     }
 
     return size;
-}  
+}
+
+qword page_fault( qword error, qword cr2 ) {
+    printf("Page Fault on 0x%x\n The error code containing:\n", cr2);
+
+    if( !(error & PAGE_PRESENT ) )
+        printf("Page Not Present\n");
+    else
+        printf("Page is Present\n");
+
+    if( !(error & PAGE_READWRITE ) )
+        printf("Page Is Writable\n");
+    else
+        printf("Page is Readable\n");
+
+    if( !( error & PAGE_USERSPACE ) )
+        printf("Page is not for userspace (for Kernel) \n");
+    else
+        printf("Page is userspace\n");
+
+}

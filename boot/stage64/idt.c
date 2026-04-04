@@ -12,24 +12,23 @@ void idt_init() {
     idt_desc.base = (qword) idt_entries;
 
     // idt_set_entry(13, (dword) isr_page_fault,  0x08, 0x8E );
-    idt_set_entry(0, (qword) isr_divide_zero, 0x08, 0x8E );
-    idt_set_entry(14, (qword) isr_page_fault,  0x08, 0x8E );
+    interrupt_setEntry(0, (qword) isr_divide_zero, 0x08, 0x8E );
+    interrupt_setEntry(14, (qword) isr_page_fault,  0x08, 0x8E );
 
     idt_install( &idt_desc );
 }
 
-void idt_set_entry( int index, qword offset, word segment, byte flags ) {
-    idt_entry_t* entry = &idt_entries[index];
-
-    entry->low_offset = offset & 0xFFFF;
-    entry->high_offset = ( offset >> 16) & 0xFFFF;
-
-    entry->code_sgement = segment;
-    entry->reserved = 0;
-    entry->gate_type = flags & 0x0F;
-    entry->zero = 0;
-    entry->dpl = flags >> 5 & 0b11;
-    entry->p = flags >> 7 & 0b1;
+void interrupt_setEntry( int index, qword offset, word segment, byte flags ) {
+    idt_entries[index] = (idt_entry_t){
+        .low_offset = offset & 0xFFFF,
+        .code_sgement = segment,
+        .reserved = 0,
+        .gate_type = ( flags ) & 0b1111,
+        .dpl = ( flags >> 5 ) & 0b11,
+        .p = ( flags >> 7 ) & 0b1,
+        .zero = 0,
+        .high_offset = ( offset >> 16 ) & 0xFFFF
+    };
 }
 
 void isr_handle( cpu_register_t reg ) {

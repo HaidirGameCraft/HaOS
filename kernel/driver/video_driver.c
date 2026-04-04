@@ -3,21 +3,22 @@
 #include <serial.h>
 #include <font/vga-8x16.h>
 #include <config.h>
+#include <header.h>
 
 static byte* framebuffer = NULL;
 static word video_width = 0;
 static word video_height = 0;
 static word video_bpp = 0;
 
-void    video_driver_init( bootstage_info_t* bootstage_info ) {
+void    video_driver_init( ) {
 
 
-    framebuffer = (byte*) bootstage_info->framebuffer;
-    video_width = bootstage_info->width;
-    video_height = bootstage_info->height;
-    video_bpp = bootstage_info->bytes_per_pixel / 8;
+    framebuffer = header.framebuffer;
+    video_width = header.width & 0xFFFF;
+    video_height = header.height & 0xFFFF;
+    video_bpp = header.bytes_per_pixel / 8;
 
-    serial_printf("Framebuffer: 0x%x\n", (qword) bootstage_info->framebuffer );
+    serial_printf("Framebuffer: 0x%x\n", (qword) header.framebuffer );
     serial_printf("Width: %i, Height: %i\n", video_width, video_height );
     serial_printf("Bytes Per Pixel: %i\n", video_bpp );
 }
@@ -29,8 +30,9 @@ void    video_driver_getsize( word* width, word* height ) {
 
 void    video_driver_mapped() {
     serial_print("[Mapped Video Graphics] ...");
-    page_mapvp( (qword) VIDEO_DRIVER_ADDRESS, (qword) framebuffer, video_width * video_height * video_bpp );
-    framebuffer = (byte*) VIDEO_DRIVER_ADDRESS;
+    page_mapvp( (qword) framebuffer, (qword) framebuffer, video_width * video_height * video_bpp , PAGE_PRESENT | PAGE_READWRITE );
+    // framebuffer = (byte*) VIDEO_DRIVER_ADDRESS;
+    // page_print();
 }
 
 void    video_driver_putPixel( int x, int y, dword color ) {

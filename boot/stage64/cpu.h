@@ -40,4 +40,4 @@ typedef struct {
 
 extern void idt_install( idt_desc_t* idt_desc );
 void idt_init();
-void idt_set_entry( int index, qword offset, word segment, byte attribute );
+void interrupt_setEntry( int index, qword offset, word segment, byte attribute );

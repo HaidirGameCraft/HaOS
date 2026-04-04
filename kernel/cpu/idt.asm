@@ -34,7 +34,7 @@
 %endmacro
 
 %macro POPX64   0
-    add rsp, 32
+    add rsp, 0x20
 
     pop rax
     pop rcx

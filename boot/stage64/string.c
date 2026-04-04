@@ -1,4 +1,4 @@
-#include <string.h>
+#include "string.h"
 
 void memory_zero( void* dest, dword size ) {
     byte* b = (byte*) dest;

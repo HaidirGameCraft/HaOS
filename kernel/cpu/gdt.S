@@ -10,11 +10,16 @@ gdt_install:
     pushq %rax
     retfq
 .flush:
+    mov $0x10, %ax
+    mov %ax, %ds
+    mov %ax, %ss
+    mov %es, %ax
     ret
 
 .globl tss_install
 tss_install:
-    movq %rdi, %rax
-    ltr (%rax)
+    // di - selector segmentation
+    mov %di, %ax
+    ltr %ax
     ret
 

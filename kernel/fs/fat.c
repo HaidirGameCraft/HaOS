@@ -1,14 +1,28 @@
+/*
+    FAT - File Allocator Table
+    - The Filesystem that created by Microsoft
+    - 3 types of FAT:
+        - FAT 12 ( - 1.44MB)
+        - FAT 16 ( - 128MB)
+        - FAT 32 ( - 4GB )
+    Documentation:
+        FAT - https://wiki.osdev.org/FAT
+    Code: created by Haidir
+*/
+
 #include <io.h>
 #include "fat.h"
 #include <serial.h>
 #include "disk.h"
 #include <string.h>
 #include <page.h>
+#include "gpt.h"
 
 #include <alloc.h>
 
 fat_header_t __header;
 fat_extended_boot_t __extended;
+static uint64_t fat_lba_start = 0;
 dword fat_getNextCluster( dword cluster );
 void convert_name_to_fat16name( char* filename ) {
     strupper( filename );
@@ -25,6 +39,10 @@ void convert_name_to_fat16name( char* filename ) {
     }
 
     char fat16Name[11];
+    for( int i = 0; i < 11; i++ )
+    {
+        fat16Name[i] = 0x20;
+    }
     for( int i = 0; i < 8; i++ ) {
         if( i >= dotFileIndex )
             fat16Name[i] = ' ';
@@ -32,7 +50,7 @@ void convert_name_to_fat16name( char* filename ) {
             fat16Name[i] = filename[i];
     }
 
-    for( int i = 8; i < 11; i++ )
+    for( int i = 8; i < strsize( &filename[dotFileIndex + 1] ) + 8; i++ )
         fat16Name[i] = filename[(dotFileIndex + 1) + (i - 8)];
 
     memcopy( filename, &fat16Name, 11 );
@@ -40,10 +58,11 @@ void convert_name_to_fat16name( char* filename ) {
 
 
 void fat_init() {
-    ata_read_disk( 0, 0, &__header, sizeof( fat_header_t ) );
-    ata_read_disk( 0, sizeof( fat_header_t ), &__extended, sizeof( fat_extended_boot_t ) );
+    fat_lba_start = gpt_get_lba_start_volume( 0 );
+    ata_read_disk( fat_lba_start, 0, &__header, sizeof( fat_header_t ) );
+    ata_read_disk( fat_lba_start, sizeof( fat_header_t ), &__extended, sizeof( fat_extended_boot_t ) );
 
-    qword fat_start = __header.reserved_sector;
+    qword fat_start = fat_lba_start + __header.reserved_sector;
     dword root_dirs_start = fat_start + __header.fat_number * __header.sector_per_fat;
     dword root_dir_sectors = __header.root_dir_entries / ( __header.bytes_per_sector / sizeof( fat_filedirectory_t ) );
     dword data_start = root_dirs_start + root_dir_sectors;
@@ -54,7 +73,7 @@ void fat_init() {
 
 fat_filedirectory_t fat_findFile( const char* filename ) {
 
-    dword fat_start = __header.reserved_sector;
+    dword fat_start = fat_lba_start + __header.reserved_sector;
     dword root_dirs_start = fat_start + __header.fat_number * __header.sector_per_fat;
     dword root_dir_sectors = __header.root_dir_entries / ( __header.bytes_per_sector / sizeof( fat_filedirectory_t ) );
     dword data_start = root_dirs_start + root_dir_sectors;
@@ -108,7 +127,7 @@ fat_filedirectory_t fat_findFile( const char* filename ) {
         indexPath++;
     }
 
-    printf("[File] %s is not found\n", filename );
+//    printf("[File] %s is not found\n", filename );
 
     return file_result;
 }
@@ -122,7 +141,7 @@ dword fat_getNextCluster( dword cluster ) {
     dword seg = (dword)( cluster / 256 );
     dword off = (dword)( cluster % 256 );
 
-    dword fat_segment = __header.reserved_sector;
+    dword fat_segment = fat_lba_start + __header.reserved_sector;
     ata_read_disk( fat_segment + seg, 0, buffer, 512 );
     return ((word*) buffer)[ off ];
 }
@@ -133,6 +152,7 @@ fat_file_ptr fat_fileOpen( const char* filename ) {
 
     if( !(fdir.attributes & FAT_DIRECTORY) )
     {
+        //printf("[Debug]: File size %s: %s\n", filename, fdir.name );
         fptr.current_cluster = fdir.low_cluster | ( fdir.high_cluster << 16 );
         fptr.next_cluster = fptr.current_cluster;
 
@@ -157,7 +177,7 @@ void fat_seek( fat_file_ptr* fptr, qword pos ) {
 
     // Find the specific Cluster from beggining cluster
     dword clus = fptr->current_cluster;
-    dword fat_start = __header.reserved_sector;
+    dword fat_start = fat_lba_start + __header.reserved_sector;
     word* fat_buffer = ( word* ) new_alloc( __header.bytes_per_sector );
     while( __len > 0 )
     {
@@ -184,7 +204,7 @@ void fat_seek( fat_file_ptr* fptr, qword pos ) {
 }
 
 void fat_readFile( const fat_filedirectory_t* file, char* buffer ) {
-    dword fat_start = __header.reserved_sector;
+    dword fat_start = fat_lba_start + __header.reserved_sector;
     dword root_dirs_start = fat_start + __header.fat_number * __header.sector_per_fat;
     dword root_dir_sectors = __header.root_dir_entries / ( __header.bytes_per_sector / sizeof( fat_filedirectory_t ) );
     dword data_start = root_dirs_start + root_dir_sectors;
@@ -205,7 +225,7 @@ void fat_readFile( const fat_filedirectory_t* file, char* buffer ) {
 }
 
 void fat_read( fat_file_ptr* fptr, char* buffer, size_t size ) {
-    dword fat_start = __header.reserved_sector;
+    dword fat_start = fat_lba_start + __header.reserved_sector;
     dword root_dirs_start = fat_start + __header.fat_number * __header.sector_per_fat;
     dword root_dir_sectors = __header.root_dir_entries / ( __header.bytes_per_sector / sizeof( fat_filedirectory_t ) );
     dword data_start = root_dirs_start + root_dir_sectors;
@@ -258,7 +278,7 @@ void fat_read( fat_file_ptr* fptr, char* buffer, size_t size ) {
 }
 
 void fat_readSector( fat_file_ptr* fptr, char* buffer ) {
-    dword fat_start = __header.reserved_sector;
+    dword fat_start = fat_lba_start + __header.reserved_sector;
     dword root_dirs_start = fat_start + __header.fat_number * __header.sector_per_fat;
     dword root_dir_sectors = __header.root_dir_entries / ( __header.bytes_per_sector / sizeof( fat_filedirectory_t ) );
     dword data_start = root_dirs_start + root_dir_sectors;
@@ -277,7 +297,7 @@ void fat_readSector( fat_file_ptr* fptr, char* buffer ) {
 }
 
 void fat_readFile_map( const fat_filedirectory_t* file, char* buffer, dword virt ) {
-    dword fat_start = __header.reserved_sector;
+    dword fat_start = fat_lba_start + __header.reserved_sector;
     dword root_dirs_start = fat_start + __header.fat_number * __header.sector_per_fat;
     dword root_dir_sectors = __header.root_dir_entries / ( __header.bytes_per_sector / sizeof( fat_filedirectory_t ) );
     dword data_start = root_dirs_start + root_dir_sectors;

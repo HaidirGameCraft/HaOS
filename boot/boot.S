@@ -1,18 +1,51 @@
-.org 0x7C00
-.code16
-
-jmp short __boot_start
-    nop
+[org 0x7c00]
+[bits 16]
 
 __boot_start:
-    mov $0x7c00, %bp
-    mov %bp, %sp
+    cli
+    xor ax, ax
+    mov ds, ax
+    mov es, ax
+    mov ss, ax
 
-    movw %dl, (__drive_number)
+    mov sp, 0x7c00
+    mov bp, sp
 
-__drive_number: .byte 0
+    mov ah, 0x0e
+    mov al, 'H'
+    int 0x10
 
+    mov al, 'e'
+    int 0x10
 
-.times 510-($-$$) .byte 0
-.word 0xAA55
-buffer:
+    mov al, 'l'
+    int 0x10
+
+    int 0x10
+
+    mov al, 'o'
+    int 0x10
+
+halt:
+    hlt
+    jmp halt
+
+print:
+    xor ax, ax
+
+    mov ah, 0x0e
+.loop:
+    mov al, byte [si]
+    inc si
+    cmp al, 0
+    je .done
+
+    int 0x10
+    jmp .loop
+.done:
+    ret
+
+message: db "Hello, World", 0
+
+times 510-($-$$) db 0
+dw 0xAA55

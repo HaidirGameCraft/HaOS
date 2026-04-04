@@ -69,9 +69,6 @@ typedef struct {
 
 void gdt_init();
 extern void gdt_install( qword descriptor );
-void gdt_set_entry( int index, dword limit, qword base, byte access, byte flags );
-void gdt_set_tss_entry( dword limit, qword base, byte access, byte flags );
-
 /*
     TSS = Task Stage Segment ( The information about Task )
 */
@@ -93,42 +90,46 @@ typedef struct {
     word iopb;
 } __attribute__((packed)) task_state_segment_t;
 
+extern void tss_install( word segment );
+
 /*
     CPU Register List
 */
 typedef struct {
 
-    qword cr4;
-    qword cr3;
-    qword cr2;
-    qword cr0;
+    qword cr4;  // 0x00
+    qword cr3;  // 0x08
+    qword cr2;  // 0x10
+    qword cr0;  // 0x18
 
-    qword rax;
-    qword rcx;
-    qword rdx;
-    qword rbx;
-    qword rsp;
-    qword rbp;
-    qword rdi;
-    qword rsi;
+    qword rax;  // 0x20
+    qword rcx;  // 0x28
+    qword rdx;  // 0x30
+    qword rbx;  // 0x38
+    qword rsp;  // 0x40
+    qword rbp;  // 0x48
+    qword rdi;  // 0x50
+    qword rsi;  // 0x58
 
-    qword r8;
-    qword r9;
-    qword r10;
-    qword r11;
-    qword r12;
-    qword r13;
-    qword r14;
-    qword r15;
+    qword r8;   // 0x60
+    qword r9;   // 0x68
+    qword r10;  // 0x70
+    qword r11;  // 0x78
+    qword r12;  // 0x80
+    qword r13;  // 0x88
+    qword r14;  // 0x90
+    qword r15;  // 0x98
 
-    qword interrupt_code;
-    qword error_code;
+    qword interrupt_code;   // 0xA0
+    qword error_code;   // 0xA8
     
-    qword rip;
-    qword cs: 16;
+    qword rip;          // 0xB0
+    qword cs: 16;           // code segment ( 0xB8 )
     qword reserved2: 48;
-    qword rflags;
-
+    qword rflags;           // 0xC0
+    qword rsp0;
+    qword ss: 16;           // stack segment (0xC8)
+    qword reserved3: 48;
 } cpu_register_t;
 
 /*
@@ -163,10 +164,19 @@ typedef struct {
     word code_sgement;
 
     // ist - Interrupt Stack Table
+    // if not set, ist will ignore
     byte ist;
 
-    /* Gate Type: The type of gate Interrupt Descriptor*/
+    /* Gate Type: The type of gate Interrupt Descriptor
+     * 0b0101 - Task Gate
+     * 0b0110 - 16 Bits Interrupt
+     * 0b0111 - 16 Bits Trap
+     * 0b1110 - 32/64 Bits Interrupt
+     * 0b1111 - 32/64 Bits Trap
+     */
     byte gate_type: 4;
+
+    // always set zero
     byte zero: 1;
 
     /* Descriptor Privilege Level */
@@ -180,7 +190,8 @@ typedef struct {
 
 typedef gdt_descriptor_t idt_descriptor_t;
 
+// Initialize Interrupt Descriptor Table
 void idt_init();
-extern void idt_install( qword descriptor );
-void idt_set_entry( int index, qword offset, word code_segment, byte attribute );
+extern void idt_install( idt_descriptor_t* descriptor );
+void interrupt_setEntry( int index, qword offset, word code_segment, byte ist, byte attribute );
 void interrupt_register( int index, qword offset );

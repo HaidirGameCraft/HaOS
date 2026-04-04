@@ -9,6 +9,13 @@ void pic_endofinterrupt( byte irq ) {
 }
 
 void pic_remapped() {
+
+    /*
+        - on Protected Mode and Long Mode, the int 0x00-0x0F has been declare on the CPU some ISR like (Divide Zero Exception/Invalid Opcode and so on)
+        - this cause may be problem like when you want to take time from PIT, but you get "Divide Zero Exception" interrupt
+        - to fix this problem, we should be remap PIC and set vector (Master: 0x00 -> 0x20, Slave: 0x08 -> 0x28 )
+    */
+
     // Initialize The PIC Master and PIC Slave by providing ICW1_Init and ICW1_ICW4
     port_outb( PIC_MASTER, ICW1_INIT | ICW1_ICW4 );
     port_outb( PIC_SLAVE, ICW1_INIT | ICW1_ICW4 );
@@ -26,6 +33,7 @@ void pic_remapped() {
     port_outb( PIC_MASTER | PIC_DATA, ICW4_MICROPROCESSOR );
     port_outb( PIC_SLAVE | PIC_DATA, ICW4_MICROPROCESSOR );
 
+    // now the intel 8259 is accept the changes of interrupt configuration, now we need to mask all OCW to 0 (Reset), 1 (Set)
     // Unmask both the PIC
     port_outb( PIC_MASTER | PIC_DATA, 0 );
     port_outb( PIC_SLAVE | PIC_DATA, 0 );

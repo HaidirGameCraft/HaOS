@@ -4,7 +4,6 @@ section .text
 global serial_init
 serial_init:
     xor edx, edx
-
     ; Disable Interrupt Register
     mov dx, bx
     inc dx

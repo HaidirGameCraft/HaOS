@@ -8,14 +8,14 @@
 #define ATAPIO_STATUS       7
 #define ATAPIO_DATA         0
 
-extern void ata_init_pio( dword lba );
+extern void ata_set_lba( word ata_bus, dword lba );
 byte tmp_buffer[512];
 void ata_read_disk( dword lba, dword offset, void* buffer, dword size ) {
     dword indexBuffer = 0;
     byte* __buf = (byte*) buffer;
     while( size > 0 )
     {
-        ata_init_pio( lba );
+        ata_set_lba(ATA_PRIMARY_BUS, lba );
 
         port_outb( ATA_PRIMARY_BUS | ATAPIO_COMMAND, 0x20 ); // 0x20 -> Read Sector
         while( port_inb( ATA_PRIMARY_BUS | ATAPIO_STATUS ) & 0x80 );

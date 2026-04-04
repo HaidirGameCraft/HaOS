@@ -7,6 +7,7 @@
 #include <page.h>
 #include <serial.h>
 
+#include <process/task.h>
 #include <config.h>
 #include <elf.h>
 
@@ -186,6 +187,10 @@ void term_exec( char* cmd ) {
             printf("EXEC <filename> - execute ELF file target\n");
             printf("SETTEXTCOLOR <r8> <g8> <b8> - change text color\n");
             printf("MEMSIZE -[K]B - show the size of memory use\n");
+            printf("LTASK - show the list of task process\n");
+        }
+        else if ( strcmp( args[0], "LTASK" ) == 0 ) {
+            task_print();
         }
         else if( strcmp(args[0], "CLEAR") == 0 ) {
             video_driver_clearScreen( R8G8B8(0, 0, 0 ) );
@@ -200,6 +205,16 @@ void term_exec( char* cmd ) {
             }
 
             elf64_load( args[1] );
+        }
+        else if ( strcmp(args[0], "TASK") == 0 ) // run file executable in Task
+        {
+            if( argc == 1 )
+            {
+                printf("Wrong Parameters: TASK <filename>");
+                return;
+            }
+
+            task_create( (qword) elf64_load, 1, args[1] );
         }
         else if ( strcmp(args[0], "SETTEXTCOLOR") == 0 )
         {

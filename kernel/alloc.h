@@ -1,4 +1,10 @@
 #pragma once
+/*
+    alloc - Memory Management
+    - design to serve memory with specific size from user
+    - this method is same like Linux ( malloc )
+    Code: created by Haidir
+*/
 
 #include <type.h>
 

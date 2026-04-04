@@ -4,7 +4,12 @@
 
 /*
     PIC - Programmable Interrupt Controller
-    Docs: SPC Specification - https://www.arl.wustk.edu/Publications/1995-99/arl9801.pdf
+    - integrate chip that control IRQ0 -> IRQ15 set it on int 0x00 -> int 0x0F
+    - Master interrupt: IRQ0 -> IRQ7, Slave Interrupt: IRQ8 -> IRQ15
+    Docs: 
+        SPC Specification - https://www.arl.wustk.edu/Publications/1995-99/arl9801.pdf
+        Intel 8259A - https://pdos.csail.mit.edu/6.828/2010/readings/hardware/8259A.pdf
+        8259A PIC - https://wiki.osdev.org/8259_PIC
 */
 
 #define PIC_MASTER  0x20

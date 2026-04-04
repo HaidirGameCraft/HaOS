@@ -1,70 +1,119 @@
 #include "cpu.h"
 #include <io.h>
 #include <serial.h>
+#include <config.h>
+#include <string.h>
 
-gdt32_entry_t gdt32_entries[5];
-gdt64_entry_t gdt64_tss;
+byte gdt_entries[sizeof( gdt32_entry_t ) * 5 + sizeof( gdt64_entry_t ) ];
+// gdt32_entry_t gdt32_entries[5];
+// gdt64_entry_t gdt64_tss;
 gdt_descriptor_t gdt_desc;
 task_state_segment_t tss_entry;
 
 void gdt_init() {
 
-    gdt_set_entry( 0, 0x00000000, 0x0000000000000000, 0x00, 0x00 );     // Null Segment
-    // Kernel Code Segment
-    gdt_set_entry( 1, 0xFFFFFFFF, 0x0000000000000000, GDT_ACCESS(1, 0, 1, 1, 0, 1, 0), GDT_FLAGS(1, 0, 1) );
-    // Kernel Data Segment
-    gdt_set_entry( 2, 0xFFFFFFFF, 0x0000000000000000, GDT_ACCESS(1, 0, 1, 0, 0, 1, 0), GDT_FLAGS(1, 1, 0) );
-    // User Code Segment
-    gdt_set_entry( 3, 0xFFFFFFFF, 0x0000000000000000, GDT_ACCESS(1, DPL_RING3, 1, 1, 0, 1, 0), GDT_FLAGS(1, 0, 1) );
-    // User Data Segment
-    gdt_set_entry( 4, 0xFFFFFFFF, 0x0000000000000000, GDT_ACCESS(1, DPL_RING3, 1, 0, 0, 1, 0), GDT_FLAGS(1, 1, 0) );
-    // Task State Segment
-    gdt_set_tss_entry( sizeof( task_state_segment_t ) - 1, (qword) &tss_entry, GDT_ACCESS(1, 0, 0, 1, 0, 0, 1), 0 );
+
+    // To setup, Global Descriptor Table (GDT) we need to set 6 entries, 5 in 8 bytes and 1 in 16 bytes on gdt entry
+    // On First item of entries, we need to set NULL
+    // Second and Third items of entries is Kernel Segment, we need to set the limit is 0xFFFFF and base 0x00000000. after that, set the access bytes and flags
+    // Fourth and Fifth items of entries is User Segment, we also setup as usual like Second and Third entry but, since it user the  Descriptor Privilege Level should be on Ring 3
+    // Finally, Task State Segment should use 16 bytes with specific address and size of limitation because TSS using 64 bits
+
+    gdt32_entry_t* gdt32_e = ( gdt32_entry_t* ) gdt_entries;
+    gdt64_entry_t* gdt64_e = ( gdt64_entry_t* )( (addr_t) gdt_entries + sizeof( gdt32_entry_t ) * 5 );
+
+    // Null Segment
+    memzero( &gdt32_e[0], sizeof( gdt32_entry_t ) );
+
+    // 0x00: Kernel Code Segment
+    gdt32_e[1] = (gdt32_entry_t){
+        .low_limit = 0xFFFF,
+        .low_base = 0x0000,
+        .mid_base = 0x0000,
+        .access = GDT_ACCESS(1, 0, 1, 1, 0, 1, 0 ),
+        .high_limit = 0xF,
+        .flags = GDT_FLAGS(1, 0, 1),
+        .high_base = 0x0000
+    };
+
+    // 0x08: Kernel Data Segment
+    gdt32_e[2] = (gdt32_entry_t){
+        .low_limit = 0xFFFF,
+        .low_base = 0x0000,
+        .mid_base = 0x0000,
+        .access = GDT_ACCESS(1, 0, 1, 0, 0, 1, 0 ),
+        .high_limit = 0xF,
+        .flags = GDT_FLAGS(1, 1, 0),
+        .high_base = 0x0000
+    };
+
+    // 0x10: User Code Segment
+    gdt32_e[3] = (gdt32_entry_t){
+        .low_limit = 0xFFFF,
+        .low_base = 0x0000,
+        .mid_base = 0x0000,
+        .access = GDT_ACCESS(1, DPL_RING3, 1, 1, 0, 1, 0 ),
+        .high_limit = 0xF,
+        .flags = GDT_FLAGS(1, 0, 1),
+        .high_base = 0x0000
+    };
+
+    // 0x18: Kernel Data Segment
+    gdt32_e[4] = (gdt32_entry_t){
+        .low_limit = 0xFFFF,
+        .low_base = 0x0000,
+        .mid_base = 0x0000,
+        .access = GDT_ACCESS(1, DPL_RING3, 1, 0, 0, 1, 0 ),
+        .high_limit = 0xF,
+        .flags = GDT_FLAGS(1, 1, 0),
+        .high_base = 0x0000
+    };
+
+    // 0x20: Task State Segment
+    size_t tss_limit = sizeof( task_state_segment_t ) - 1;
+    gdt64_e[0] = (gdt64_entry_t){
+        .low_limit = tss_limit & 0xFFFF,
+        .low_base = ((qword) &tss_entry ) & 0xFFFF,
+        .mid_base = ((qword) &tss_entry >> 16) & 0xFF,
+        .access = GDT_ACCESS(1, 0, 0, 1, 0, 0, 1),
+        .high_limit = tss_limit >> 16 & 0xFF,
+        .flags = GDT_FLAGS(0, 0, 0),    // Since this is Task State Segment, set to 0
+        .high_base = ((qword) &tss_entry >> 24) & 0xFF,
+        .offset_base3 = ((qword) &tss_entry >> 32) & 0xFFFFFFFF,
+        .reserved = 0
+    };
+
 
     for( int i = 0; i < 5; i++ )
     {
-        dword base = gdt32_entries[i].low_base | gdt32_entries[i].mid_base << 16 | (qword)(gdt32_entries[i].high_base) << 24;
-        dword limit = gdt32_entries[i].low_limit | (qword)(gdt32_entries[i].high_limit) << 16;
+        gdt32_entry_t* entry = ((gdt32_entry_t*)( (qword) gdt_entries + sizeof( gdt32_entry_t ) * i ));
+        dword base = entry->low_base | entry->mid_base << 16 | (qword)(entry->high_base) << 24;
+        dword limit = entry->low_limit | (qword)(entry->high_limit) << 16;
         serial_printf("GDT[%i] = { Base: %x, Limit: %x } \n", i, base, limit );
     }
     // TSS
     {
-        qword base = gdt64_tss.low_base | gdt64_tss.mid_base << 16 | (qword)(gdt64_tss.high_base) << 24 | (qword)( gdt64_tss.offset_base3 << 32 );
-        dword limit = gdt64_tss.low_limit | (qword)(gdt64_tss.high_limit) << 16;
+        gdt64_entry_t* entry = ((gdt64_entry_t*)((qword) gdt_entries + sizeof( gdt32_entry_t ) * 5 ) );
+        qword base = entry->low_base | entry->mid_base << 16 | (qword)(entry->high_base) << 24 | (qword)( entry->offset_base3 << 32 );
+        dword limit = entry->low_limit | (qword)(entry->high_limit) << 16;
         serial_printf("GDT[6] ( TSS ) = { Base: %x, Limit: %x } \n", base, limit );
     }
 
-    gdt_desc.base = (qword) &gdt32_entries;
-    gdt_desc.limit = sizeof( gdt32_entries ) + sizeof( gdt64_tss ) - 1;
+    // we need to set base where entries start and the size of entries
+    // after that, tell cpu to use this gdt_desc
+    gdt_desc.base = (qword) &gdt_entries;
+    gdt_desc.limit = sizeof( gdt_entries ) - 1;
     gdt_install( (qword) &gdt_desc );
     print("Global Descriptor Table Installed!\n");
 
-    for( int i = 0; i < sizeof( tss_entry ); i++ )
-        ((byte*) &tss_entry)[i] = 0;
+    // Setting up Task State Segment
+    memzero( &tss_entry, sizeof( task_state_segment_t ) );
+    tss_entry.iopb = sizeof( task_state_segment_t );
+    tss_entry.rsp0 = (qword) KERNEL_STACK_BOTTOM;
 
-    extern void tss_install( task_state_segment_t* tss );
-    tss_install( &tss_entry );
-}
 
-void gdt_set_entry( int index, dword limit, qword base, byte access, byte flags )
-{
-    gdt32_entries[index].low_limit = limit & 0xFFFF;
-    gdt32_entries[index].high_limit = ( limit >> 16 ) & 0x0F;
-    gdt32_entries[index].low_base = base & 0xFFFF;
-    gdt32_entries[index].mid_base = ( base >> 16 ) & 0xFF;
-    gdt32_entries[index].high_base = (base >> 24) & 0xFF;
-    gdt32_entries[index].access = access;
-    gdt32_entries[index].flags = flags & 0x0F;
-}
 
-void gdt_set_tss_entry( dword limit, qword base, byte access, byte flags ) {
-    gdt64_tss.low_limit = limit & 0xFFFF;
-    gdt64_tss.high_limit = ( limit >> 16 ) & 0x0F;
-    gdt64_tss.low_base = base & 0xFFFF;
-    gdt64_tss.mid_base = ( base >> 16 ) & 0xFF;
-    gdt64_tss.high_base = (base >> 24) & 0xFF;
-    gdt64_tss.offset_base3 = ( base >> 32 ) & 0xFFFFFFFF;
-    gdt64_tss.access = access;
-    gdt64_tss.flags = flags & 0x0F;
-    gdt64_tss.reserved = 0;
+    // tell cpu to use this tss_entry
+    // Index of TSS in GDT
+    tss_install( 0x28 );
 }

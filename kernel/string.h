@@ -3,7 +3,7 @@
 #include <type.h>
 
 extern void memzero( void* buffer, size_t size );
-void memcopy( void* dest, void* src, size_t size );
+extern void memcopy( void* dest, void* src, size_t size );
 
 size_t strsize( char* buffer );
 void strupper( char* text );
